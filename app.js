@@ -167,7 +167,15 @@ function renderNotifications() {
 
 function render() {
   const person = selectedPerson();
-  if (!person) return;
+  if (!person) {
+    selectedName.textContent = "Add your first friend";
+    draftClasses = [];
+    renderFriends();
+    renderClasses();
+    renderMatches();
+    renderNotifications();
+    return;
+  }
   selectedId = person.id;
   selectedName.textContent = person.name;
   renderFriends();
@@ -286,6 +294,48 @@ function wireEvents() {
     draftClasses = [];
     $("#friendNameInput").value = "";
     $("#friendDialog").close();
+    render();
+  });
+
+  $("#renameFriendBtn").addEventListener("click", () => {
+    const person = selectedPerson();
+    if (!person) return;
+    $("#renameInput").value = person.name;
+    $("#renameDialog").showModal();
+  });
+
+  $("#saveRenameBtn").addEventListener("click", async () => {
+    const person = selectedPerson();
+    const name = $("#renameInput").value.trim();
+    if (!person || !name) return;
+
+    const payload = await api(`/api/people/${encodeURIComponent(person.id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ name })
+    });
+    state.people = payload.people;
+    state.matches = payload.matches;
+    state.notifications = payload.notifications;
+    $("#renameDialog").close();
+    setStatus("Friend renamed");
+    render();
+  });
+
+  $("#deleteFriendBtn").addEventListener("click", async () => {
+    const person = selectedPerson();
+    if (!person) return;
+    const shouldDelete = window.confirm(`Delete ${person.name} and their schedule?`);
+    if (!shouldDelete) return;
+
+    const payload = await api(`/api/people/${encodeURIComponent(person.id)}`, {
+      method: "DELETE"
+    });
+    state.people = payload.people;
+    state.matches = payload.matches;
+    state.notifications = payload.notifications;
+    selectedId = state.people[0]?.id || null;
+    draftClasses = [...(selectedPerson()?.classes || [])];
+    setStatus("Friend deleted");
     render();
   });
 }

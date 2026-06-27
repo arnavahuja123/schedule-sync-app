@@ -253,6 +253,40 @@ async function handleApi(req, res, pathname) {
     return sendJson(res, 201, { person, matches: buildMatches(db.people) });
   }
 
+  if (req.method === "PUT" && pathname.startsWith("/api/people/")) {
+    const personId = decodeURIComponent(pathname.split("/").pop());
+    const body = await readJsonBody(req);
+    const db = await loadDb();
+    const person = db.people.find((item) => item.id === personId);
+    if (!person) return sendJson(res, 404, { error: "Person not found." });
+
+    person.name = String(body.name || person.name).trim();
+    person.color = body.color || person.color;
+    await saveDb(db);
+    return sendJson(res, 200, {
+      person,
+      people: db.people,
+      matches: buildMatches(db.people),
+      notifications: db.notifications || []
+    });
+  }
+
+  if (req.method === "DELETE" && pathname.startsWith("/api/people/")) {
+    const personId = decodeURIComponent(pathname.split("/").pop());
+    const db = await loadDb();
+    const beforeCount = db.people.length;
+    db.people = db.people.filter((item) => item.id !== personId);
+    if (db.people.length === beforeCount) return sendJson(res, 404, { error: "Person not found." });
+    db.notifications = (db.notifications || []).filter((note) => note.personId !== personId);
+
+    await saveDb(db);
+    return sendJson(res, 200, {
+      people: db.people,
+      matches: buildMatches(db.people),
+      notifications: db.notifications || []
+    });
+  }
+
   if (req.method === "POST" && pathname === "/api/schedules") {
     const body = await readJsonBody(req);
     const db = await loadDb();

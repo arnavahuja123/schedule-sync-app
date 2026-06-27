@@ -30,6 +30,10 @@
           <div>
             <p class="eyebrow">Friend schedule matcher</p>
             <h2 id="selectedName">Loading...</h2>
+            <div class="person-tools">
+              <button id="renameFriendBtn" type="button">Rename</button>
+              <button id="deleteFriendBtn" class="danger-action" type="button">Delete</button>
+            </div>
           </div>
           <div class="status-pill" id="scanStatus">Ready</div>
         </section>
@@ -123,6 +127,17 @@ ENG3U,English,Ms. Wong,214,"Mon Wed Fri",09:00,10:15</textarea>
         <div class="dialog-actions">
           <button value="cancel" type="submit">Cancel</button>
           <button id="createFriendBtn" value="default" type="button">Create</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="renameDialog">
+      <form method="dialog" class="dialog-card">
+        <h3>Rename Friend</h3>
+        <input id="renameInput" placeholder="Friend's name">
+        <div class="dialog-actions">
+          <button value="cancel" type="submit">Cancel</button>
+          <button id="saveRenameBtn" value="default" type="button">Save</button>
         </div>
       </form>
     </dialog>

@@ -92,7 +92,8 @@ button {
 #addClassBtn,
 #importCsvBtn,
 #scanBtn,
-#createFriendBtn {
+#createFriendBtn,
+#saveRenameBtn {
   border: 0;
   border-radius: 8px;
   background: var(--accent);
@@ -169,6 +170,28 @@ button {
   margin-top: 4px;
   font-size: 34px;
   line-height: 1.12;
+}
+
+.person-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.person-tools button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 12px;
+  font-weight: 750;
+}
+
+.person-tools .danger-action {
+  border-color: rgba(235, 87, 87, 0.32);
+  color: var(--red);
 }
 
 .status-pill {
