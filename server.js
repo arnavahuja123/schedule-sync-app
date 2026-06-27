@@ -7,6 +7,7 @@ const PORT = Number(process.env.PORT || 4173);
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
 const DB_PATH = path.join(ROOT, "data", "db.json");
+const FLAT_DB_PATH = path.join(ROOT, "db.json");
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -38,12 +39,21 @@ async function readJsonBody(req, limitBytes = 8 * 1024 * 1024) {
 }
 
 async function loadDb() {
-  const raw = await fs.readFile(DB_PATH, "utf8");
+  const raw = await fs.readFile(await existingPath(DB_PATH, FLAT_DB_PATH), "utf8");
   return JSON.parse(raw);
 }
 
 async function saveDb(db) {
-  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2));
+  await fs.writeFile(await existingPath(DB_PATH, FLAT_DB_PATH), JSON.stringify(db, null, 2));
+}
+
+async function existingPath(primary, fallback) {
+  try {
+    await fs.access(primary);
+    return primary;
+  } catch {
+    return fallback;
+  }
 }
 
 function slugify(value) {
@@ -271,8 +281,11 @@ async function handleApi(req, res, pathname) {
 
 async function serveStatic(req, res, pathname) {
   const safePath = pathname === "/" ? "/index.html" : pathname;
-  const filePath = path.normalize(path.join(PUBLIC_DIR, safePath));
-  if (!filePath.startsWith(PUBLIC_DIR)) {
+  const publicPath = path.normalize(path.join(PUBLIC_DIR, safePath));
+  const flatPath = path.normalize(path.join(ROOT, safePath));
+  const filePath = await existingPath(publicPath, flatPath);
+
+  if (!filePath.startsWith(PUBLIC_DIR) && !filePath.startsWith(ROOT)) {
     res.writeHead(403);
     return res.end("Forbidden");
   }
