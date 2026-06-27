@@ -1,0 +1,17 @@
+{
+  "name": "schedule-sync-app",
+  "version": "1.0.0",
+  "description": "A friend schedule matcher with image scanning via Gemini.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "schedule",
+    "classes",
+    "gemini",
+    "ocr"
+  ],
+  "author": "",
+  "license": "MIT"
+}

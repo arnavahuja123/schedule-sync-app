@@ -1,0 +1,132 @@
+{
+  "people": [
+    {
+      "id": "maya",
+      "name": "Maya Patel",
+      "color": "#2f80ed",
+      "classes": [
+        {
+          "course": "ENG3U",
+          "title": "English",
+          "teacher": "Ms. Wong",
+          "room": "214",
+          "days": [
+            "Mon",
+            "Wed",
+            "Fri"
+          ],
+          "start": "09:00",
+          "end": "10:15"
+        },
+        {
+          "course": "MCR3U",
+          "title": "Functions",
+          "teacher": "Mr. Shah",
+          "room": "128",
+          "days": [
+            "Tue",
+            "Thu"
+          ],
+          "start": "10:25",
+          "end": "11:40"
+        }
+      ]
+    },
+    {
+      "id": "leo",
+      "name": "Leo Nguyen",
+      "color": "#27ae60",
+      "classes": [
+        {
+          "course": "ENG3U",
+          "title": "English",
+          "teacher": "Ms. Wong",
+          "room": "214",
+          "days": [
+            "Mon",
+            "Wed",
+            "Fri"
+          ],
+          "start": "09:00",
+          "end": "10:15"
+        },
+        {
+          "course": "SCH3U",
+          "title": "Chemistry",
+          "teacher": "Dr. Allen",
+          "room": "305",
+          "days": [
+            "Tue",
+            "Thu"
+          ],
+          "start": "12:30",
+          "end": "13:45"
+        }
+      ]
+    },
+    {
+      "id": "sofia",
+      "name": "Sofia Rivera",
+      "color": "#f2994a",
+      "classes": [
+        {
+          "course": "MCR3U",
+          "title": "Functions",
+          "teacher": "Mr. Shah",
+          "room": "128",
+          "days": [
+            "Tue",
+            "Thu"
+          ],
+          "start": "10:25",
+          "end": "11:40"
+        }
+      ]
+    }
+  ],
+  "notifications": [
+    {
+      "id": "2026-06-27T20:44:09.642Z-maya-ENG3U-0",
+      "personId": "maya",
+      "createdAt": "2026-06-27T20:44:09.642Z",
+      "message": "Maya Patel, you have ENG3U with Leo Nguyen.",
+      "classInfo": {
+        "course": "ENG3U",
+        "title": "English",
+        "teacher": "Ms. Wong",
+        "room": "214",
+        "days": [
+          "Mon",
+          "Wed",
+          "Fri"
+        ],
+        "start": "09:00",
+        "end": "10:15"
+      },
+      "friendNames": [
+        "Leo Nguyen"
+      ]
+    },
+    {
+      "id": "2026-06-27T20:44:09.642Z-maya-MCR3U-1",
+      "personId": "maya",
+      "createdAt": "2026-06-27T20:44:09.642Z",
+      "message": "Maya Patel, you have MCR3U with Sofia Rivera.",
+      "classInfo": {
+        "course": "MCR3U",
+        "title": "Functions",
+        "teacher": "Mr. Shah",
+        "room": "128",
+        "days": [
+          "Tue",
+          "Thu"
+        ],
+        "start": "10:25",
+        "end": "11:40"
+      },
+      "friendNames": [
+        "Sofia Rivera"
+      ]
+    }
+  ]
+}

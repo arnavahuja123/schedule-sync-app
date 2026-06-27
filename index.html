@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Schedule Sync</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">SS</div>
+          <div>
+            <h1>Schedule Sync</h1>
+            <p>Shared classes, instantly.</p>
+          </div>
+        </div>
+
+        <button class="primary-action" id="openAddFriend">
+          <span>+</span>
+          Add Friend
+        </button>
+
+        <nav class="friend-list" id="friendList" aria-label="Friends"></nav>
+      </aside>
+
+      <main class="workspace">
+        <section class="topbar">
+          <div>
+            <p class="eyebrow">Friend schedule matcher</p>
+            <h2 id="selectedName">Loading...</h2>
+          </div>
+          <div class="status-pill" id="scanStatus">Ready</div>
+        </section>
+
+        <section class="dashboard-grid">
+          <div class="panel schedule-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Upload</p>
+                <h3>Schedule Intake</h3>
+              </div>
+              <div class="segmented" role="tablist" aria-label="Upload mode">
+                <button class="segment active" data-mode="manual" type="button">Manual</button>
+                <button class="segment" data-mode="csv" type="button">CSV</button>
+                <button class="segment" data-mode="scan" type="button">Scan</button>
+              </div>
+            </div>
+
+            <div class="upload-mode active" id="manualMode">
+              <div class="class-form">
+                <input id="courseInput" placeholder="Course code, e.g. ENG3U">
+                <input id="titleInput" placeholder="Class name">
+                <input id="teacherInput" placeholder="Teacher">
+                <input id="roomInput" placeholder="Room">
+                <input id="daysInput" placeholder="Days, e.g. Mon Wed Fri">
+                <input id="startInput" placeholder="Start, e.g. 09:00">
+                <input id="endInput" placeholder="End, e.g. 10:15">
+                <button id="addClassBtn" type="button">Add Class</button>
+              </div>
+            </div>
+
+            <div class="upload-mode" id="csvMode">
+              <textarea id="csvInput" spellcheck="false">course,title,teacher,room,days,start,end
+ENG3U,English,Ms. Wong,214,"Mon Wed Fri",09:00,10:15</textarea>
+              <button id="importCsvBtn" type="button">Import CSV</button>
+            </div>
+
+            <div class="upload-mode" id="scanMode">
+              <label class="dropzone" for="imageInput">
+                <input id="imageInput" type="file" accept="image/*">
+                <span class="drop-icon">⌁</span>
+                <strong>Upload a schedule screenshot or photo</strong>
+                <small>Gemini scans the image when `GEMINI_API_KEY` is set on the server.</small>
+              </label>
+              <button id="scanBtn" type="button">Scan Image</button>
+            </div>
+
+            <div class="schedule-preview">
+              <div class="preview-header">
+                <h3>Current Schedule</h3>
+                <button id="saveScheduleBtn" type="button">Save & Notify</button>
+              </div>
+              <div id="classTable" class="class-table"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Matches</p>
+                <h3>Classes Together</h3>
+              </div>
+            </div>
+            <div id="matchList" class="match-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Alerts</p>
+                <h3>Notifications</h3>
+              </div>
+            </div>
+            <div id="notificationList" class="notification-list"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="friendDialog">
+      <form method="dialog" class="dialog-card">
+        <h3>Add Friend</h3>
+        <input id="friendNameInput" placeholder="Friend's name">
+        <div class="color-row">
+          <button type="button" class="swatch active" data-color="#2f80ed"></button>
+          <button type="button" class="swatch" data-color="#27ae60"></button>
+          <button type="button" class="swatch" data-color="#f2994a"></button>
+          <button type="button" class="swatch" data-color="#eb5757"></button>
+          <button type="button" class="swatch" data-color="#7b61ff"></button>
+        </div>
+        <div class="dialog-actions">
+          <button value="cancel" type="submit">Cancel</button>
+          <button id="createFriendBtn" value="default" type="button">Create</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
