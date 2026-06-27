@@ -78,29 +78,58 @@ function normalizeClass(item) {
     teacher: String(item.teacher || "").trim(),
     room: String(item.room || "").trim(),
     days,
-    start: String(item.start || item.startTime || "").trim(),
-    end: String(item.end || item.endTime || "").trim()
+    start: normalizeTime(item.start || item.startTime || ""),
+    end: normalizeTime(item.end || item.endTime || "")
   };
 }
 
-function classKey(item) {
-  const days = [...(item.days || [])].sort().join(",");
-  return [
-    item.course.trim().toUpperCase(),
-    item.teacher.trim().toLowerCase(),
-    item.room.trim().toLowerCase(),
-    days,
-    item.start,
-    item.end
-  ].join("|");
+function normalizeTime(value) {
+  const raw = String(value || "").trim().toUpperCase().replace(/\s+/g, "");
+  const match = raw.match(/^(\d{1,2})(?::?(\d{2}))?(AM|PM)?$/);
+  if (!match) return raw;
+
+  let hour = Number(match[1]);
+  const minute = match[2] || "00";
+  const meridian = match[3];
+
+  if (meridian === "PM" && hour < 12) hour += 12;
+  if (meridian === "AM" && hour === 12) hour = 0;
+
+  return `${String(hour).padStart(2, "0")}:${minute}`;
 }
 
-function looseClassKey(item) {
-  return [
-    item.course.trim().toUpperCase(),
-    item.teacher.trim().toLowerCase(),
-    item.room.trim().toLowerCase()
-  ].join("|");
+function compactText(value) {
+  return String(value || "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
+}
+
+function courseIdentity(item) {
+  const text = compactText(`${item.course} ${item.title}`);
+  const courseMatch = text.match(/\b([A-Z]{2,8})\s*([0-9][A-Z0-9]{2,4})\b/);
+  const sectionMatch = text.match(/\b([CLT][0-9]{2,3})\b/);
+  const typeMatch = text.match(/\b(LECTURE|TUTORIAL|LABORATORY|LAB)\b/);
+
+  return {
+    courseCode: courseMatch ? `${courseMatch[1]} ${courseMatch[2]}` : compactText(item.course),
+    section: sectionMatch ? sectionMatch[1] : "",
+    type: typeMatch ? typeMatch[1].replace("LABORATORY", "LAB") : "",
+    time: item.start && item.end ? `${item.start}-${item.end}` : "",
+    room: compactText(item.room)
+  };
+}
+
+function matchingKeys(item) {
+  const identity = courseIdentity(item);
+  if (!identity.courseCode) return [];
+
+  const keys = new Set();
+  if (identity.section && identity.time) keys.add(`${identity.courseCode}|${identity.section}|${identity.time}`);
+  if (identity.section && identity.type) keys.add(`${identity.courseCode}|${identity.section}|${identity.type}`);
+  if (identity.time && identity.type) keys.add(`${identity.courseCode}|${identity.type}|${identity.time}`);
+  if (identity.room && identity.time) keys.add(`${identity.courseCode}|${identity.room}|${identity.time}`);
+  if (identity.section) keys.add(`${identity.courseCode}|${identity.section}`);
+  if (identity.time) keys.add(`${identity.courseCode}|${identity.time}`);
+
+  return [...keys];
 }
 
 function buildMatches(people) {
@@ -109,16 +138,24 @@ function buildMatches(people) {
   for (const person of people) {
     for (const klass of person.classes || []) {
       if (!klass.course) continue;
-      const exact = classKey(klass);
-      const loose = looseClassKey(klass);
-      const key = exact.replace(/\|+$/, "") === loose ? loose : exact;
-      if (!buckets.has(key)) buckets.set(key, { classInfo: klass, people: [] });
-      buckets.get(key).people.push({ id: person.id, name: person.name, color: person.color });
+      for (const key of matchingKeys(klass)) {
+        if (!buckets.has(key)) buckets.set(key, { classInfo: klass, peopleById: new Map() });
+        buckets.get(key).peopleById.set(person.id, { id: person.id, name: person.name, color: person.color });
+      }
     }
   }
 
+  const seenGroups = new Set();
   return [...buckets.values()]
+    .map((entry) => ({ classInfo: entry.classInfo, people: [...entry.peopleById.values()] }))
     .filter((entry) => entry.people.length > 1)
+    .filter((entry) => {
+      const identity = courseIdentity(entry.classInfo);
+      const groupKey = `${identity.courseCode}|${identity.section}|${identity.type}|${identity.time}|${entry.people.map((person) => person.id).sort().join(",")}`;
+      if (seenGroups.has(groupKey)) return false;
+      seenGroups.add(groupKey);
+      return true;
+    })
     .sort((a, b) => a.classInfo.course.localeCompare(b.classInfo.course));
 }
 
@@ -181,6 +218,8 @@ async function scanScheduleWithGemini({ imageBase64, mimeType }) {
   const prompt = [
     "Read this student schedule image and return only valid JSON.",
     "Use this schema: {\"classes\":[{\"course\":\"string\",\"title\":\"string\",\"teacher\":\"string\",\"room\":\"string\",\"days\":[\"Mon\"],\"start\":\"HH:MM\",\"end\":\"HH:MM\"}]}",
+    "For course, include the subject, course number, and section when visible, for example \"MATH 1ZC3 C02\" or \"MATH 1ZA3 T02\".",
+    "For title, include the meeting type such as Lecture, Tutorial, or Laboratory.",
     "If a value is missing, use an empty string or empty array. Do not include markdown."
   ].join(" ");
 
