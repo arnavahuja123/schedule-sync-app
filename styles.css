@@ -389,6 +389,39 @@ textarea {
   font-size: 13px;
 }
 
+.classmates-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.with-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.mini-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border-radius: 999px;
+  background: #eaf3ff;
+  color: #1f4f91;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.muted-with {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .icon-btn {
   display: grid;
   width: 34px;

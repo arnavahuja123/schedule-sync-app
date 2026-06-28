@@ -82,6 +82,82 @@ function csvToClasses(text) {
   }).filter((item) => item.course);
 }
 
+function compactText(value) {
+  return String(value || "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
+}
+
+function normalizeTime(value) {
+  const raw = String(value || "").trim().toUpperCase().replace(/\s+/g, "");
+  const match = raw.match(/^(\d{1,2})(?::?(\d{2}))?(AM|PM)?$/);
+  if (!match) return raw;
+
+  let hour = Number(match[1]);
+  const minute = match[2] || "00";
+  const meridian = match[3];
+
+  if (meridian === "PM" && hour < 12) hour += 12;
+  if (meridian === "AM" && hour === 12) hour = 0;
+
+  return `${String(hour).padStart(2, "0")}:${minute}`;
+}
+
+function classIdentity(klass) {
+  const text = compactText(`${klass.course} ${klass.title}`);
+  const courseMatch = text.match(/\b([A-Z]{2,8})\s*([0-9][A-Z0-9]{2,4})\b/);
+  const sectionMatch = text.match(/\b([CLT][0-9]{2,3})\b/);
+
+  return {
+    courseCode: courseMatch ? `${courseMatch[1]} ${courseMatch[2]}` : compactText(klass.course),
+    section: sectionMatch ? sectionMatch[1] : "",
+    room: compactText(klass.room),
+    start: normalizeTime(klass.start),
+    end: normalizeTime(klass.end)
+  };
+}
+
+function sameClass(left, right) {
+  const a = classIdentity(left);
+  const b = classIdentity(right);
+  if (!a.courseCode || a.courseCode !== b.courseCode) return false;
+
+  const sameSection = a.section && b.section && a.section === b.section;
+  const sameTime = a.start && b.start && a.end && b.end && a.start === b.start && a.end === b.end;
+  const sameRoom = a.room && b.room && a.room === b.room;
+
+  return sameSection || sameTime || (sameRoom && sameTime);
+}
+
+function classmatesForClass(klass) {
+  const person = selectedPerson();
+  if (!person) return [];
+
+  const classmates = new Map();
+  for (const match of state.matches || []) {
+    const selectedIsInMatch = match.people.some((member) => member.id === person.id);
+    if (!selectedIsInMatch || !sameClass(klass, match.classInfo)) continue;
+
+    for (const member of match.people) {
+      if (member.id !== person.id) classmates.set(member.id, member);
+    }
+  }
+
+  return [...classmates.values()];
+}
+
+function renderClassmateLine(klass) {
+  const classmates = classmatesForClass(klass);
+  if (!classmates.length) return `<div class="classmates-line muted-with">No friends in this class yet</div>`;
+
+  return `
+    <div class="classmates-line">
+      <span class="with-label">With</span>
+      ${classmates.map((person) => `
+        <span class="mini-chip"><span class="chip-dot" style="background:${person.color}"></span>${person.name}</span>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderFriends() {
   friendList.innerHTML = state.people.map((person) => `
     <button class="friend-item ${person.id === selectedId ? "active" : ""}" data-person-id="${person.id}" type="button">
@@ -117,6 +193,7 @@ function renderClasses() {
       <div>
         <strong>${klass.title || "Untitled class"}</strong>
         <div class="subtext">${klass.start || "--:--"} - ${klass.end || "--:--"}</div>
+        ${renderClassmateLine(klass)}
       </div>
       <div class="subtext">${klass.teacher || "No teacher"}</div>
       <div class="subtext">${klass.room || "No room"}</div>
