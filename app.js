@@ -1,5 +1,4 @@
 let state = {
-  groups: [],
   activeGroup: null,
   people: [],
   matches: [],
@@ -167,12 +166,11 @@ function renderClassmateLine(klass) {
 }
 
 function renderGroups() {
-  groupSelect.innerHTML = state.groups.map((group) => `
-    <option value="${group.id}" ${group.id === state.activeGroup?.id ? "selected" : ""}>${group.name}</option>
-  `).join("");
-
+  groupSelect.innerHTML = state.activeGroup
+    ? `<option value="${state.activeGroup.id}">${state.activeGroup.name}</option>`
+    : `<option value="">No private group selected</option>`;
   groupName.textContent = state.activeGroup?.name || "No group";
-  groupCodeText.textContent = state.activeGroup ? `Invite code: ${state.activeGroup.code}` : "Invite code: ...";
+  groupCodeText.textContent = state.activeGroup ? `Invite code: ${state.activeGroup.code}` : "Create a group or join with a code.";
 }
 
 function renderFriends() {
@@ -328,7 +326,7 @@ function renderNotifications() {
 function render() {
   const person = selectedPerson();
   if (!person) {
-    selectedName.textContent = "Add your first friend";
+    selectedName.textContent = state.activeGroup ? "Add your first friend" : "Join or create a private group";
     draftClasses = [];
     renderGroups();
     renderFriends();
@@ -354,7 +352,11 @@ async function loadState() {
   const query = activeGroupId ? `?groupId=${encodeURIComponent(activeGroupId)}` : "";
   state = await api(`/api/state${query}`);
   activeGroupId = state.activeGroup?.id || "";
-  if (activeGroupId) localStorage.setItem("scheduleSyncGroupId", activeGroupId);
+  if (activeGroupId) {
+    localStorage.setItem("scheduleSyncGroupId", activeGroupId);
+  } else {
+    localStorage.removeItem("scheduleSyncGroupId");
+  }
   selectedId = selectedId || state.people[0]?.id;
   if (!state.people.some((person) => person.id === selectedId)) selectedId = state.people[0]?.id || null;
   draftClasses = [...(selectedPerson()?.classes || [])];
@@ -378,6 +380,7 @@ function wireEvents() {
   });
 
   groupSelect.addEventListener("change", async () => {
+    if (!groupSelect.value) return;
     activeGroupId = groupSelect.value;
     localStorage.setItem("scheduleSyncGroupId", activeGroupId);
     selectedId = null;
@@ -409,7 +412,6 @@ function wireEvents() {
       method: "POST",
       body: JSON.stringify({ name })
     });
-    state.groups = payload.groups;
     activeGroupId = payload.group.id;
     localStorage.setItem("scheduleSyncGroupId", activeGroupId);
     selectedId = null;
@@ -426,7 +428,6 @@ function wireEvents() {
       method: "POST",
       body: JSON.stringify({ code })
     });
-    state.groups = payload.groups;
     activeGroupId = payload.group.id;
     localStorage.setItem("scheduleSyncGroupId", activeGroupId);
     selectedId = null;
@@ -508,6 +509,10 @@ function wireEvents() {
   });
 
   $("#openAddFriend").addEventListener("click", () => {
+    if (!state.activeGroup) {
+      setStatus("Create or join a group first");
+      return;
+    }
     $("#friendDialog").showModal();
   });
 

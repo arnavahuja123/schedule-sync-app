@@ -299,10 +299,18 @@ async function handleApi(req, res, pathname) {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const db = await loadDb();
     const requestedGroupId = url.searchParams.get("groupId");
-    const activeGroup = db.groups.find((group) => group.id === requestedGroupId) || db.groups[0];
+    const activeGroup = requestedGroupId ? db.groups.find((group) => group.id === requestedGroupId) : null;
+    if (!activeGroup) {
+      return sendJson(res, 200, {
+        activeGroup: null,
+        people: [],
+        matches: [],
+        notifications: []
+      });
+    }
+
     const people = db.people.filter((person) => person.groupId === activeGroup.id);
     return sendJson(res, 200, {
-      groups: db.groups,
       activeGroup,
       people,
       matches: buildMatches(db.people, activeGroup.id),
@@ -326,7 +334,7 @@ async function handleApi(req, res, pathname) {
 
     db.groups.push(group);
     await saveDb(db);
-    return sendJson(res, 201, { group, groups: db.groups });
+    return sendJson(res, 201, { group });
   }
 
   if (req.method === "POST" && pathname === "/api/groups/join") {
@@ -335,13 +343,14 @@ async function handleApi(req, res, pathname) {
     const code = String(body.code || "").trim().toUpperCase();
     const group = db.groups.find((item) => item.code.toUpperCase() === code);
     if (!group) return sendJson(res, 404, { error: "Group code not found." });
-    return sendJson(res, 200, { group, groups: db.groups });
+    return sendJson(res, 200, { group });
   }
 
   if (req.method === "POST" && pathname === "/api/people") {
     const body = await readJsonBody(req);
     const db = await loadDb();
-    const group = db.groups.find((item) => item.id === body.groupId) || db.groups[0];
+    const group = db.groups.find((item) => item.id === body.groupId);
+    if (!group) return sendJson(res, 400, { error: "Join or create a private group first." });
     const person = {
       id: slugify(body.name),
       name: String(body.name || "New Friend").trim(),
