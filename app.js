@@ -10,6 +10,7 @@ let selectedColor = "#2f80ed";
 let draftClasses = [];
 let selectedImage = null;
 let activeGroupId = localStorage.getItem("scheduleSyncGroupId") || "";
+let knownGroups = loadKnownGroups();
 
 const $ = (selector) => document.querySelector(selector);
 const friendList = $("#friendList");
@@ -30,6 +31,29 @@ function selectedPerson() {
 
 function setStatus(message) {
   scanStatus.textContent = message;
+}
+
+function loadKnownGroups() {
+  try {
+    return JSON.parse(localStorage.getItem("scheduleSyncKnownGroups") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveKnownGroups() {
+  localStorage.setItem("scheduleSyncKnownGroups", JSON.stringify(knownGroups));
+}
+
+function rememberGroup(group) {
+  if (!group?.id) return;
+  const existingIndex = knownGroups.findIndex((item) => item.id === group.id);
+  if (existingIndex >= 0) {
+    knownGroups[existingIndex] = group;
+  } else {
+    knownGroups.push(group);
+  }
+  saveKnownGroups();
 }
 
 async function api(path, options = {}) {
@@ -166,8 +190,15 @@ function renderClassmateLine(klass) {
 }
 
 function renderGroups() {
-  groupSelect.innerHTML = state.activeGroup
-    ? `<option value="${state.activeGroup.id}">${state.activeGroup.name}</option>`
+  const optionGroups = [...knownGroups];
+  if (state.activeGroup && !optionGroups.some((group) => group.id === state.activeGroup.id)) {
+    optionGroups.push(state.activeGroup);
+  }
+
+  groupSelect.innerHTML = optionGroups.length
+    ? optionGroups.map((group) => `
+        <option value="${group.id}" ${group.id === state.activeGroup?.id ? "selected" : ""}>${group.name}</option>
+      `).join("")
     : `<option value="">No private group selected</option>`;
   groupName.textContent = state.activeGroup?.name || "No group";
   groupCodeText.textContent = state.activeGroup ? `Invite code: ${state.activeGroup.code}` : "Create a group or join with a code.";
@@ -351,9 +382,16 @@ function render() {
 async function loadState() {
   const query = activeGroupId ? `?groupId=${encodeURIComponent(activeGroupId)}` : "";
   state = await api(`/api/state${query}`);
+  if (!state.activeGroup && activeGroupId && knownGroups.length) {
+    knownGroups = knownGroups.filter((group) => group.id !== activeGroupId);
+    saveKnownGroups();
+    activeGroupId = knownGroups[0]?.id || "";
+    if (activeGroupId) return loadState();
+  }
   activeGroupId = state.activeGroup?.id || "";
   if (activeGroupId) {
     localStorage.setItem("scheduleSyncGroupId", activeGroupId);
+    rememberGroup(state.activeGroup);
   } else {
     localStorage.removeItem("scheduleSyncGroupId");
   }
@@ -412,6 +450,7 @@ function wireEvents() {
       method: "POST",
       body: JSON.stringify({ name })
     });
+    rememberGroup(payload.group);
     activeGroupId = payload.group.id;
     localStorage.setItem("scheduleSyncGroupId", activeGroupId);
     selectedId = null;
@@ -428,6 +467,7 @@ function wireEvents() {
       method: "POST",
       body: JSON.stringify({ code })
     });
+    rememberGroup(payload.group);
     activeGroupId = payload.group.id;
     localStorage.setItem("scheduleSyncGroupId", activeGroupId);
     selectedId = null;
