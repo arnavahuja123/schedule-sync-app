@@ -1,4 +1,6 @@
 let state = {
+  groups: [],
+  activeGroup: null,
   people: [],
   matches: [],
   notifications: []
@@ -8,6 +10,7 @@ let selectedId = null;
 let selectedColor = "#2f80ed";
 let draftClasses = [];
 let selectedImage = null;
+let activeGroupId = localStorage.getItem("scheduleSyncGroupId") || "";
 
 const $ = (selector) => document.querySelector(selector);
 const friendList = $("#friendList");
@@ -16,6 +19,11 @@ const classTable = $("#classTable");
 const matchList = $("#matchList");
 const notificationList = $("#notificationList");
 const scanStatus = $("#scanStatus");
+const groupName = $("#groupName");
+const groupSelect = $("#groupSelect");
+const groupCodeText = $("#groupCodeText");
+const withMeList = $("#withMeList");
+const calendarGrid = $("#calendarGrid");
 
 function selectedPerson() {
   return state.people.find((person) => person.id === selectedId) || state.people[0];
@@ -158,6 +166,15 @@ function renderClassmateLine(klass) {
   `;
 }
 
+function renderGroups() {
+  groupSelect.innerHTML = state.groups.map((group) => `
+    <option value="${group.id}" ${group.id === state.activeGroup?.id ? "selected" : ""}>${group.name}</option>
+  `).join("");
+
+  groupName.textContent = state.activeGroup?.name || "No group";
+  groupCodeText.textContent = state.activeGroup ? `Invite code: ${state.activeGroup.code}` : "Invite code: ...";
+}
+
 function renderFriends() {
   friendList.innerHTML = state.people.map((person) => `
     <button class="friend-item ${person.id === selectedId ? "active" : ""}" data-person-id="${person.id}" type="button">
@@ -176,6 +193,72 @@ function renderFriends() {
       render();
     });
   });
+}
+
+function sharedMatchesForSelected() {
+  const person = selectedPerson();
+  if (!person) return [];
+
+  return (state.matches || [])
+    .filter((match) => match.people.some((member) => member.id === person.id))
+    .map((match) => ({
+      ...match,
+      classmates: match.people.filter((member) => member.id !== person.id)
+    }))
+    .filter((match) => match.classmates.length);
+}
+
+function renderWithMe() {
+  const matches = sharedMatchesForSelected();
+  if (!matches.length) {
+    withMeList.innerHTML = `<div class="empty-state">No shared classes in this group yet.</div>`;
+    return;
+  }
+
+  withMeList.innerHTML = matches.map((match) => `
+    <article class="with-me-card">
+      <div>
+        <h4>You have ${match.classInfo.course} with ${match.classmates.map((person) => person.name).join(", ")}</h4>
+        <p class="subtext">${match.classInfo.title || "Class"} - ${match.classInfo.start || "--:--"} to ${match.classInfo.end || "--:--"} - ${(match.classInfo.days || []).join(" ")}</p>
+      </div>
+      <div class="people-chips">
+        ${match.classmates.map((person) => `
+          <span class="chip"><span class="chip-dot" style="background:${person.color}"></span>${person.name}</span>
+        `).join("")}
+      </div>
+    </article>
+  `).join("");
+}
+
+function dayMatches(day, klass) {
+  return (klass.days || []).some((item) => item.toLowerCase().startsWith(day.toLowerCase().slice(0, 3)));
+}
+
+function renderCalendar() {
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  const classes = [...draftClasses].sort((a, b) => String(a.start).localeCompare(String(b.start)));
+
+  calendarGrid.innerHTML = days.map((day) => {
+    const dayClasses = classes.filter((klass) => dayMatches(day, klass));
+    return `
+      <section class="calendar-day">
+        <h4>${day}</h4>
+        <div class="calendar-day-stack">
+          ${dayClasses.length ? dayClasses.map((klass) => {
+            const classmates = classmatesForClass(klass);
+            return `
+              <article class="calendar-class ${classmates.length ? "shared" : ""}">
+                <strong>${klass.course}</strong>
+                <span>${klass.start || "--:--"} - ${klass.end || "--:--"}</span>
+                <small>${klass.title || "Class"}</small>
+                ${classmates.length ? `<em>With ${classmates.map((person) => person.name).join(", ")}</em>` : ""}
+              </article>
+            `;
+          }).join("") : `<div class="calendar-empty">No classes</div>`}
+        </div>
+      </section>
+    `;
+  }).join("");
 }
 
 function renderClasses() {
@@ -247,23 +330,33 @@ function render() {
   if (!person) {
     selectedName.textContent = "Add your first friend";
     draftClasses = [];
+    renderGroups();
     renderFriends();
     renderClasses();
     renderMatches();
     renderNotifications();
+    renderWithMe();
+    renderCalendar();
     return;
   }
   selectedId = person.id;
   selectedName.textContent = person.name;
+  renderGroups();
   renderFriends();
   renderClasses();
   renderMatches();
   renderNotifications();
+  renderWithMe();
+  renderCalendar();
 }
 
 async function loadState() {
-  state = await api("/api/state");
+  const query = activeGroupId ? `?groupId=${encodeURIComponent(activeGroupId)}` : "";
+  state = await api(`/api/state${query}`);
+  activeGroupId = state.activeGroup?.id || "";
+  if (activeGroupId) localStorage.setItem("scheduleSyncGroupId", activeGroupId);
   selectedId = selectedId || state.people[0]?.id;
+  if (!state.people.some((person) => person.id === selectedId)) selectedId = state.people[0]?.id || null;
   draftClasses = [...(selectedPerson()?.classes || [])];
   render();
 }
@@ -275,6 +368,74 @@ function addDraftClass(klass) {
 }
 
 function wireEvents() {
+  document.querySelectorAll(".view-tab").forEach((button) => {
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".view-tab").forEach((item) => item.classList.remove("active"));
+      document.querySelectorAll(".app-view").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      $(`#${button.dataset.view}View`).classList.add("active");
+    });
+  });
+
+  groupSelect.addEventListener("change", async () => {
+    activeGroupId = groupSelect.value;
+    localStorage.setItem("scheduleSyncGroupId", activeGroupId);
+    selectedId = null;
+    await loadState();
+  });
+
+  $("#copyGroupCodeBtn").addEventListener("click", async () => {
+    if (!state.activeGroup) return;
+    try {
+      await navigator.clipboard.writeText(state.activeGroup.code);
+      setStatus("Group code copied");
+    } catch {
+      setStatus(`Code: ${state.activeGroup.code}`);
+    }
+  });
+
+  $("#openCreateGroup").addEventListener("click", () => {
+    $("#createGroupDialog").showModal();
+  });
+
+  $("#openJoinGroup").addEventListener("click", () => {
+    $("#joinGroupDialog").showModal();
+  });
+
+  $("#createGroupBtn").addEventListener("click", async () => {
+    const name = $("#groupNameInput").value.trim();
+    if (!name) return;
+    const payload = await api("/api/groups", {
+      method: "POST",
+      body: JSON.stringify({ name })
+    });
+    state.groups = payload.groups;
+    activeGroupId = payload.group.id;
+    localStorage.setItem("scheduleSyncGroupId", activeGroupId);
+    selectedId = null;
+    $("#groupNameInput").value = "";
+    $("#createGroupDialog").close();
+    await loadState();
+    setStatus(`Created ${payload.group.name}`);
+  });
+
+  $("#joinGroupBtn").addEventListener("click", async () => {
+    const code = $("#joinCodeInput").value.trim();
+    if (!code) return;
+    const payload = await api("/api/groups/join", {
+      method: "POST",
+      body: JSON.stringify({ code })
+    });
+    state.groups = payload.groups;
+    activeGroupId = payload.group.id;
+    localStorage.setItem("scheduleSyncGroupId", activeGroupId);
+    selectedId = null;
+    $("#joinCodeInput").value = "";
+    $("#joinGroupDialog").close();
+    await loadState();
+    setStatus(`Joined ${payload.group.name}`);
+  });
+
   document.querySelectorAll(".segment").forEach((button) => {
     button.addEventListener("click", () => {
       document.querySelectorAll(".segment").forEach((item) => item.classList.remove("active"));
@@ -363,7 +524,7 @@ function wireEvents() {
     if (!name) return;
     const result = await api("/api/people", {
       method: "POST",
-      body: JSON.stringify({ name, color: selectedColor })
+      body: JSON.stringify({ name, color: selectedColor, groupId: activeGroupId })
     });
     state.people.push(result.person);
     state.matches = result.matches;
@@ -404,16 +565,12 @@ function wireEvents() {
     const shouldDelete = window.confirm(`Delete ${person.name} and their schedule?`);
     if (!shouldDelete) return;
 
-    const payload = await api(`/api/people/${encodeURIComponent(person.id)}`, {
+    await api(`/api/people/${encodeURIComponent(person.id)}`, {
       method: "DELETE"
     });
-    state.people = payload.people;
-    state.matches = payload.matches;
-    state.notifications = payload.notifications;
     selectedId = state.people[0]?.id || null;
-    draftClasses = [...(selectedPerson()?.classes || [])];
+    await loadState();
     setStatus("Friend deleted");
-    render();
   });
 }
 

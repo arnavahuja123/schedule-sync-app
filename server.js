@@ -40,7 +40,7 @@ async function readJsonBody(req, limitBytes = 8 * 1024 * 1024) {
 
 async function loadDb() {
   const raw = await fs.readFile(await existingPath(DB_PATH, FLAT_DB_PATH), "utf8");
-  return JSON.parse(raw);
+  return ensureDbShape(JSON.parse(raw));
 }
 
 async function saveDb(db) {
@@ -62,6 +62,31 @@ function slugify(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "") || `person-${Date.now()}`;
+}
+
+function ensureDbShape(db) {
+  db.groups = Array.isArray(db.groups) && db.groups.length
+    ? db.groups
+    : [{ id: "engineering-2026", name: "Engineering 2026", code: "ENG2026" }];
+  db.people = Array.isArray(db.people) ? db.people : [];
+  db.notifications = Array.isArray(db.notifications) ? db.notifications : [];
+
+  const fallbackGroupId = db.groups[0].id;
+  db.people = db.people.map((person) => ({
+    ...person,
+    groupId: person.groupId || fallbackGroupId
+  }));
+
+  return db;
+}
+
+function makeInviteCode(name, existingCodes) {
+  const prefix = String(name || "GROUP").replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 4) || "GRP";
+  let code = "";
+  do {
+    code = `${prefix}${Math.floor(1000 + Math.random() * 9000)}`;
+  } while (existingCodes.has(code));
+  return code;
 }
 
 function normalizeClass(item) {
@@ -132,10 +157,11 @@ function matchingKeys(item) {
   return [...keys];
 }
 
-function buildMatches(people) {
+function buildMatches(people, groupId = "") {
+  const scopedPeople = groupId ? people.filter((person) => person.groupId === groupId) : people;
   const buckets = new Map();
 
-  for (const person of people) {
+  for (const person of scopedPeople) {
     for (const klass of person.classes || []) {
       if (!klass.course) continue;
       for (const key of matchingKeys(klass)) {
@@ -160,7 +186,7 @@ function buildMatches(people) {
 }
 
 function createNotifications(db, person) {
-  const matches = buildMatches(db.people);
+  const matches = buildMatches(db.people, person.groupId);
   const timestamp = new Date().toISOString();
   const fresh = [];
 
@@ -178,6 +204,11 @@ function createNotifications(db, person) {
   }
 
   db.notifications = [...fresh, ...(db.notifications || [])].slice(0, 80);
+}
+
+function groupNotifications(db, groupId) {
+  const groupPeopleIds = new Set(db.people.filter((person) => person.groupId === groupId).map((person) => person.id));
+  return (db.notifications || []).filter((note) => groupPeopleIds.has(note.personId));
 }
 
 function sendJson(res, status, payload) {
@@ -265,21 +296,57 @@ async function scanScheduleWithGemini({ imageBase64, mimeType }) {
 
 async function handleApi(req, res, pathname) {
   if (req.method === "GET" && pathname === "/api/state") {
+    const url = new URL(req.url, `http://${req.headers.host}`);
     const db = await loadDb();
+    const requestedGroupId = url.searchParams.get("groupId");
+    const activeGroup = db.groups.find((group) => group.id === requestedGroupId) || db.groups[0];
+    const people = db.people.filter((person) => person.groupId === activeGroup.id);
     return sendJson(res, 200, {
-      people: db.people,
-      matches: buildMatches(db.people),
-      notifications: db.notifications || []
+      groups: db.groups,
+      activeGroup,
+      people,
+      matches: buildMatches(db.people, activeGroup.id),
+      notifications: (db.notifications || []).filter((note) => people.some((person) => person.id === note.personId))
     });
+  }
+
+  if (req.method === "POST" && pathname === "/api/groups") {
+    const body = await readJsonBody(req);
+    const db = await loadDb();
+    const name = String(body.name || "New Group").trim();
+    const group = {
+      id: slugify(name),
+      name,
+      code: makeInviteCode(name, new Set(db.groups.map((item) => item.code)))
+    };
+
+    while (db.groups.some((item) => item.id === group.id)) {
+      group.id = `${group.id}-${Math.floor(Math.random() * 999)}`;
+    }
+
+    db.groups.push(group);
+    await saveDb(db);
+    return sendJson(res, 201, { group, groups: db.groups });
+  }
+
+  if (req.method === "POST" && pathname === "/api/groups/join") {
+    const body = await readJsonBody(req);
+    const db = await loadDb();
+    const code = String(body.code || "").trim().toUpperCase();
+    const group = db.groups.find((item) => item.code.toUpperCase() === code);
+    if (!group) return sendJson(res, 404, { error: "Group code not found." });
+    return sendJson(res, 200, { group, groups: db.groups });
   }
 
   if (req.method === "POST" && pathname === "/api/people") {
     const body = await readJsonBody(req);
     const db = await loadDb();
+    const group = db.groups.find((item) => item.id === body.groupId) || db.groups[0];
     const person = {
       id: slugify(body.name),
       name: String(body.name || "New Friend").trim(),
       color: body.color || "#7b61ff",
+      groupId: group.id,
       classes: []
     };
 
@@ -289,7 +356,7 @@ async function handleApi(req, res, pathname) {
 
     db.people.push(person);
     await saveDb(db);
-    return sendJson(res, 201, { person, matches: buildMatches(db.people) });
+    return sendJson(res, 201, { person, matches: buildMatches(db.people, group.id) });
   }
 
   if (req.method === "PUT" && pathname.startsWith("/api/people/")) {
@@ -304,9 +371,9 @@ async function handleApi(req, res, pathname) {
     await saveDb(db);
     return sendJson(res, 200, {
       person,
-      people: db.people,
-      matches: buildMatches(db.people),
-      notifications: db.notifications || []
+      people: db.people.filter((item) => item.groupId === person.groupId),
+      matches: buildMatches(db.people, person.groupId),
+      notifications: groupNotifications(db, person.groupId)
     });
   }
 
@@ -319,9 +386,10 @@ async function handleApi(req, res, pathname) {
     db.notifications = (db.notifications || []).filter((note) => note.personId !== personId);
 
     await saveDb(db);
+    const activeGroupId = db.groups[0]?.id || "";
     return sendJson(res, 200, {
-      people: db.people,
-      matches: buildMatches(db.people),
+      people: db.people.filter((item) => item.groupId === activeGroupId),
+      matches: buildMatches(db.people, activeGroupId),
       notifications: db.notifications || []
     });
   }
@@ -337,8 +405,8 @@ async function handleApi(req, res, pathname) {
     await saveDb(db);
     return sendJson(res, 200, {
       person,
-      matches: buildMatches(db.people),
-      notifications: db.notifications || []
+      matches: buildMatches(db.people, person.groupId),
+      notifications: groupNotifications(db, person.groupId)
     });
   }
 

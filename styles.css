@@ -113,6 +113,69 @@ button {
   color: #111827;
 }
 
+.group-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 12px;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.group-header p,
+.group-header strong,
+.group-panel small {
+  margin: 0;
+}
+
+.group-header p,
+.group-panel small {
+  color: #aab4c5;
+  font-size: 12px;
+}
+
+.group-header strong {
+  display: block;
+  margin-top: 2px;
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.group-header button,
+.group-actions button {
+  min-height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  padding: 0 10px;
+  font-weight: 750;
+}
+
+.group-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  padding: 0 10px;
+  font: inherit;
+}
+
 .friend-list {
   display: flex;
   flex-direction: column;
@@ -201,6 +264,43 @@ button {
   color: var(--muted);
   padding: 9px 14px;
   white-space: nowrap;
+}
+
+.view-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 6px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 4px;
+}
+
+.view-tab {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.view-tab.active {
+  background: #111827;
+  color: #ffffff;
+}
+
+.app-view {
+  display: none;
+}
+
+.app-view.active {
+  display: block;
+}
+
+.dashboard-grid.app-view.active {
+  display: grid;
 }
 
 .dashboard-grid {
@@ -435,13 +535,15 @@ textarea {
 }
 
 .match-list,
-.notification-list {
+.notification-list,
+.with-me-list {
   display: grid;
   gap: 10px;
 }
 
 .match-card h4,
-.notification-card p {
+.notification-card p,
+.with-me-card h4 {
   margin: 0;
 }
 
@@ -476,6 +578,85 @@ textarea {
 
 .notification-card {
   border-left: 4px solid var(--green);
+}
+
+.with-me-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.with-me-card h4 {
+  font-size: 17px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.calendar-day {
+  min-width: 150px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcff;
+  padding: 10px;
+}
+
+.calendar-day h4 {
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+
+.calendar-day-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.calendar-class {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.calendar-class.shared {
+  border-color: rgba(39, 174, 96, 0.45);
+  background: #effaf4;
+}
+
+.calendar-class strong {
+  color: var(--accent-strong);
+  font-size: 14px;
+}
+
+.calendar-class span,
+.calendar-class small,
+.calendar-class em,
+.calendar-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.calendar-class em {
+  color: #1d7a42;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.calendar-empty {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
 }
 
 .empty-state {
@@ -578,6 +759,10 @@ dialog::backdrop {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  .calendar-grid {
+    grid-template-columns: repeat(5, minmax(180px, 1fr));
+  }
 }
 
 @media (max-width: 680px) {
@@ -598,6 +783,12 @@ dialog::backdrop {
   }
 
   .segmented {
+    width: 100%;
+  }
+
+  .view-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
     width: 100%;
   }
 

@@ -22,6 +22,22 @@
           Add Friend
         </button>
 
+        <section class="group-panel">
+          <div class="group-header">
+            <div>
+              <p>Private Group</p>
+              <strong id="groupName">Loading...</strong>
+            </div>
+            <button id="copyGroupCodeBtn" type="button">Code</button>
+          </div>
+          <select id="groupSelect" aria-label="Active group"></select>
+          <div class="group-actions">
+            <button id="openCreateGroup" type="button">New Group</button>
+            <button id="openJoinGroup" type="button">Join</button>
+          </div>
+          <small id="groupCodeText">Invite code: ...</small>
+        </section>
+
         <nav class="friend-list" id="friendList" aria-label="Friends"></nav>
       </aside>
 
@@ -38,7 +54,13 @@
           <div class="status-pill" id="scanStatus">Ready</div>
         </section>
 
-        <section class="dashboard-grid">
+        <div class="view-tabs" role="tablist" aria-label="Views">
+          <button class="view-tab active" data-view="schedule" type="button">Schedule</button>
+          <button class="view-tab" data-view="withMe" type="button">With Me</button>
+          <button class="view-tab" data-view="calendar" type="button">Calendar</button>
+        </div>
+
+        <section class="dashboard-grid app-view active" id="scheduleView">
           <div class="panel schedule-panel">
             <div class="panel-header">
               <div>
@@ -110,6 +132,30 @@ ENG3U,English,Ms. Wong,214,"Mon Wed Fri",09:00,10:15</textarea>
             <div id="notificationList" class="notification-list"></div>
           </div>
         </section>
+
+        <section class="app-view" id="withMeView">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Shared classes</p>
+                <h3>Classes With Me</h3>
+              </div>
+            </div>
+            <div id="withMeList" class="with-me-list"></div>
+          </div>
+        </section>
+
+        <section class="app-view" id="calendarView">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Week view</p>
+                <h3>Calendar Schedule</h3>
+              </div>
+            </div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+          </div>
+        </section>
       </main>
     </div>
 
@@ -138,6 +184,28 @@ ENG3U,English,Ms. Wong,214,"Mon Wed Fri",09:00,10:15</textarea>
         <div class="dialog-actions">
           <button value="cancel" type="submit">Cancel</button>
           <button id="saveRenameBtn" value="default" type="button">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="createGroupDialog">
+      <form method="dialog" class="dialog-card">
+        <h3>Create Group</h3>
+        <input id="groupNameInput" placeholder="Group name, e.g. Engineering 2026">
+        <div class="dialog-actions">
+          <button value="cancel" type="submit">Cancel</button>
+          <button id="createGroupBtn" value="default" type="button">Create</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="joinGroupDialog">
+      <form method="dialog" class="dialog-card">
+        <h3>Join Group</h3>
+        <input id="joinCodeInput" placeholder="Invite code">
+        <div class="dialog-actions">
+          <button value="cancel" type="submit">Cancel</button>
+          <button id="joinGroupBtn" value="default" type="button">Join</button>
         </div>
       </form>
     </dialog>
