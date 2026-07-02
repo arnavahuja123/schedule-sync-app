@@ -8,6 +8,7 @@ const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
 const DB_PATH = path.join(ROOT, "data", "db.json");
 const FLAT_DB_PATH = path.join(ROOT, "db.json");
+const ACTIVE_DB_PATH = process.env.DATA_FILE || "";
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -39,12 +40,15 @@ async function readJsonBody(req, limitBytes = 8 * 1024 * 1024) {
 }
 
 async function loadDb() {
-  const raw = await fs.readFile(await existingPath(DB_PATH, FLAT_DB_PATH), "utf8");
+  const dbPath = await getDbPath();
+  const raw = await fs.readFile(dbPath, "utf8");
   return ensureDbShape(JSON.parse(raw));
 }
 
 async function saveDb(db) {
-  await fs.writeFile(await existingPath(DB_PATH, FLAT_DB_PATH), JSON.stringify(db, null, 2));
+  const dbPath = await getDbPath();
+  await fs.mkdir(path.dirname(dbPath), { recursive: true });
+  await fs.writeFile(dbPath, JSON.stringify(db, null, 2));
 }
 
 async function existingPath(primary, fallback) {
@@ -54,6 +58,21 @@ async function existingPath(primary, fallback) {
   } catch {
     return fallback;
   }
+}
+
+async function getDbPath() {
+  if (!ACTIVE_DB_PATH) return existingPath(DB_PATH, FLAT_DB_PATH);
+
+  try {
+    await fs.access(ACTIVE_DB_PATH);
+  } catch {
+    const seedPath = await existingPath(DB_PATH, FLAT_DB_PATH);
+    const seed = await fs.readFile(seedPath, "utf8");
+    await fs.mkdir(path.dirname(ACTIVE_DB_PATH), { recursive: true });
+    await fs.writeFile(ACTIVE_DB_PATH, seed);
+  }
+
+  return ACTIVE_DB_PATH;
 }
 
 function slugify(value) {

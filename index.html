@@ -68,13 +68,13 @@
                 <h3>Schedule Intake</h3>
               </div>
               <div class="segmented" role="tablist" aria-label="Upload mode">
-                <button class="segment active" data-mode="manual" type="button">Manual</button>
+                <button class="segment active" data-mode="scan" type="button">Scan</button>
+                <button class="segment" data-mode="manual" type="button">Manual</button>
                 <button class="segment" data-mode="csv" type="button">CSV</button>
-                <button class="segment" data-mode="scan" type="button">Scan</button>
               </div>
             </div>
 
-            <div class="upload-mode active" id="manualMode">
+            <div class="upload-mode" id="manualMode">
               <div class="class-form">
                 <input id="courseInput" placeholder="Course code, e.g. ENG3U">
                 <input id="titleInput" placeholder="Class name">
@@ -93,7 +93,7 @@ ENG3U,English,Ms. Wong,214,"Mon Wed Fri",09:00,10:15</textarea>
               <button id="importCsvBtn" type="button">Import CSV</button>
             </div>
 
-            <div class="upload-mode" id="scanMode">
+            <div class="upload-mode active" id="scanMode">
               <label class="dropzone" for="imageInput">
                 <input id="imageInput" type="file" accept="image/*">
                 <span class="drop-icon">⌁</span>
