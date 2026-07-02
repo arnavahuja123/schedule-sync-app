@@ -295,12 +295,21 @@ select {
   display: none;
 }
 
+.app-view[hidden],
+.dashboard-grid.app-view[hidden] {
+  display: none !important;
+}
+
 .app-view.active {
   display: block;
 }
 
 .dashboard-grid.app-view.active {
   display: grid;
+}
+
+.dashboard-grid.app-view:not(.active) {
+  display: none;
 }
 
 .dashboard-grid {

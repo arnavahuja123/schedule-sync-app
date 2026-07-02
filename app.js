@@ -407,13 +407,23 @@ function addDraftClass(klass) {
   renderClasses();
 }
 
+function switchView(viewName) {
+  document.querySelectorAll(".view-tab").forEach((item) => {
+    item.classList.toggle("active", item.dataset.view === viewName);
+  });
+
+  document.querySelectorAll(".app-view").forEach((item) => {
+    const isActive = item.id === `${viewName}View`;
+    item.classList.toggle("active", isActive);
+    item.hidden = !isActive;
+  });
+}
+
 function wireEvents() {
   document.querySelectorAll(".view-tab").forEach((button) => {
     button.addEventListener("click", () => {
-      document.querySelectorAll(".view-tab").forEach((item) => item.classList.remove("active"));
-      document.querySelectorAll(".app-view").forEach((item) => item.classList.remove("active"));
-      button.classList.add("active");
-      $(`#${button.dataset.view}View`).classList.add("active");
+      switchView(button.dataset.view);
+      document.querySelector(".workspace").scrollTo({ top: 0, behavior: "smooth" });
     });
   });
 
@@ -629,6 +639,7 @@ function fileToBase64(file) {
 }
 
 wireEvents();
+switchView("schedule");
 loadState().catch((error) => {
   setStatus(error.message);
 });
