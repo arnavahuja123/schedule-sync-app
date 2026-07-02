@@ -24,9 +24,14 @@ const groupSelect = $("#groupSelect");
 const groupCodeText = $("#groupCodeText");
 const withMeList = $("#withMeList");
 const calendarGrid = $("#calendarGrid");
+const intakePanel = document.querySelector(".schedule-panel");
 
 function selectedPerson() {
   return state.people.find((person) => person.id === selectedId) || state.people[0];
+}
+
+function hasSelectedPerson() {
+  return Boolean(selectedPerson());
 }
 
 function setStatus(message) {
@@ -204,6 +209,28 @@ function renderGroups() {
   groupCodeText.textContent = state.activeGroup ? `Invite code: ${state.activeGroup.code}` : "Create a group or join with a code.";
 }
 
+function setIntakeLocked(isLocked) {
+  intakePanel?.classList.toggle("locked", isLocked);
+  [
+    "#imageInput",
+    "#scanBtn",
+    "#courseInput",
+    "#titleInput",
+    "#teacherInput",
+    "#roomInput",
+    "#daysInput",
+    "#startInput",
+    "#endInput",
+    "#addClassBtn",
+    "#csvInput",
+    "#importCsvBtn",
+    "#saveScheduleBtn"
+  ].forEach((selector) => {
+    const element = $(selector);
+    if (element) element.disabled = isLocked;
+  });
+}
+
 function renderFriends() {
   friendList.innerHTML = state.people.map((person) => `
     <button class="friend-item ${person.id === selectedId ? "active" : ""}" data-person-id="${person.id}" type="button">
@@ -360,6 +387,7 @@ function render() {
     selectedName.textContent = state.activeGroup ? "Add your first friend" : "Join or create a private group";
     draftClasses = [];
     renderGroups();
+    setIntakeLocked(true);
     renderFriends();
     renderClasses();
     renderMatches();
@@ -371,6 +399,7 @@ function render() {
   selectedId = person.id;
   selectedName.textContent = person.name;
   renderGroups();
+  setIntakeLocked(false);
   renderFriends();
   renderClasses();
   renderMatches();
@@ -497,6 +526,10 @@ function wireEvents() {
   });
 
   $("#addClassBtn").addEventListener("click", () => {
+    if (!hasSelectedPerson()) {
+      setStatus("Add a friend first");
+      return;
+    }
     addDraftClass({
       course: $("#courseInput").value.trim().toUpperCase(),
       title: $("#titleInput").value.trim(),
@@ -513,17 +546,31 @@ function wireEvents() {
   });
 
   $("#importCsvBtn").addEventListener("click", () => {
+    if (!hasSelectedPerson()) {
+      setStatus("Add a friend first");
+      return;
+    }
     draftClasses = csvToClasses($("#csvInput").value);
     renderClasses();
     setStatus(`Imported ${draftClasses.length} classes`);
   });
 
   $("#imageInput").addEventListener("change", (event) => {
+    if (!hasSelectedPerson()) {
+      event.target.value = "";
+      selectedImage = null;
+      setStatus("Add a friend first");
+      return;
+    }
     selectedImage = event.target.files[0] || null;
     setStatus(selectedImage ? selectedImage.name : "Ready");
   });
 
   $("#scanBtn").addEventListener("click", async () => {
+    if (!hasSelectedPerson()) {
+      setStatus("Add a friend first");
+      return;
+    }
     if (!selectedImage) {
       setStatus("Choose an image first");
       return;
@@ -545,7 +592,10 @@ function wireEvents() {
 
   $("#saveScheduleBtn").addEventListener("click", async () => {
     const person = selectedPerson();
-    if (!person) return;
+    if (!person) {
+      setStatus("Add a friend first");
+      return;
+    }
     setStatus("Saving...");
     const payload = await api("/api/schedules", {
       method: "POST",

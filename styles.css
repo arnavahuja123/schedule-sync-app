@@ -328,7 +328,44 @@ select {
 }
 
 .schedule-panel {
+  position: relative;
   grid-row: span 2;
+}
+
+.intake-lock-message {
+  display: none;
+  margin-bottom: 14px;
+  border: 1px solid rgba(235, 87, 87, 0.28);
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #8f2525;
+  padding: 12px;
+}
+
+.intake-lock-message strong,
+.intake-lock-message span {
+  display: block;
+}
+
+.intake-lock-message span {
+  margin-top: 3px;
+  font-size: 13px;
+}
+
+.schedule-panel.locked .intake-lock-message {
+  display: block;
+}
+
+.schedule-panel.locked .upload-mode,
+.schedule-panel.locked .schedule-preview {
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+button:disabled,
+input:disabled,
+textarea:disabled {
+  cursor: not-allowed;
 }
 
 .panel-header,
