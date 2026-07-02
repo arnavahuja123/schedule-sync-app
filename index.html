@@ -19,7 +19,7 @@
 
         <button class="primary-action" id="openAddFriend">
           <span>+</span>
-          Add Friend
+          Add Yourself
         </button>
 
         <section class="group-panel">
@@ -44,7 +44,7 @@
       <main class="workspace">
         <section class="topbar">
           <div>
-            <p class="eyebrow">Friend schedule matcher</p>
+            <p class="eyebrow">Schedule matcher</p>
             <h2 id="selectedName">Loading...</h2>
             <div class="person-tools">
               <button id="renameFriendBtn" type="button">Rename</button>
@@ -63,8 +63,8 @@
         <section class="dashboard-grid app-view active" id="scheduleView">
           <div class="panel schedule-panel">
             <div class="intake-lock-message">
-              <strong>Add a friend first</strong>
-              <span>Create/select a person before scanning or saving a schedule.</span>
+              <strong>Add yourself first</strong>
+              <span>Create/select your profile before scanning or saving a schedule.</span>
             </div>
             <div class="panel-header">
               <div>
@@ -165,8 +165,8 @@ ENG3U,English,Ms. Wong,214,"Mon Wed Fri",09:00,10:15</textarea>
 
     <dialog id="friendDialog">
       <form method="dialog" class="dialog-card">
-        <h3>Add Friend</h3>
-        <input id="friendNameInput" placeholder="Friend's name">
+        <h3>Add Yourself</h3>
+        <input id="friendNameInput" placeholder="Your name">
         <div class="color-row">
           <button type="button" class="swatch active" data-color="#2f80ed"></button>
           <button type="button" class="swatch" data-color="#27ae60"></button>
@@ -176,15 +176,15 @@ ENG3U,English,Ms. Wong,214,"Mon Wed Fri",09:00,10:15</textarea>
         </div>
         <div class="dialog-actions">
           <button value="cancel" type="submit">Cancel</button>
-          <button id="createFriendBtn" value="default" type="button">Create</button>
+          <button id="createFriendBtn" value="default" type="button">Create Profile</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="renameDialog">
       <form method="dialog" class="dialog-card">
-        <h3>Rename Friend</h3>
-        <input id="renameInput" placeholder="Friend's name">
+        <h3>Rename Profile</h3>
+        <input id="renameInput" placeholder="Your name">
         <div class="dialog-actions">
           <button value="cancel" type="submit">Cancel</button>
           <button id="saveRenameBtn" value="default" type="button">Save</button>

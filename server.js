@@ -372,7 +372,7 @@ async function handleApi(req, res, pathname) {
     if (!group) return sendJson(res, 400, { error: "Join or create a private group first." });
     const person = {
       id: slugify(body.name),
-      name: String(body.name || "New Friend").trim(),
+      name: String(body.name || "New Person").trim(),
       color: body.color || "#7b61ff",
       groupId: group.id,
       classes: []

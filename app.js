@@ -182,7 +182,7 @@ function classmatesForClass(klass) {
 
 function renderClassmateLine(klass) {
   const classmates = classmatesForClass(klass);
-  if (!classmates.length) return `<div class="classmates-line muted-with">No friends in this class yet</div>`;
+  if (!classmates.length) return `<div class="classmates-line muted-with">No one from your group in this class yet</div>`;
 
   return `
     <div class="classmates-line">
@@ -384,7 +384,7 @@ function renderNotifications() {
 function render() {
   const person = selectedPerson();
   if (!person) {
-    selectedName.textContent = state.activeGroup ? "Add your first friend" : "Join or create a private group";
+    selectedName.textContent = state.activeGroup ? "Add yourself first" : "Join or create a private group";
     draftClasses = [];
     renderGroups();
     setIntakeLocked(true);
@@ -527,7 +527,7 @@ function wireEvents() {
 
   $("#addClassBtn").addEventListener("click", () => {
     if (!hasSelectedPerson()) {
-      setStatus("Add a friend first");
+      setStatus("Add yourself first");
       return;
     }
     addDraftClass({
@@ -547,7 +547,7 @@ function wireEvents() {
 
   $("#importCsvBtn").addEventListener("click", () => {
     if (!hasSelectedPerson()) {
-      setStatus("Add a friend first");
+      setStatus("Add yourself first");
       return;
     }
     draftClasses = csvToClasses($("#csvInput").value);
@@ -559,7 +559,7 @@ function wireEvents() {
     if (!hasSelectedPerson()) {
       event.target.value = "";
       selectedImage = null;
-      setStatus("Add a friend first");
+      setStatus("Add yourself first");
       return;
     }
     selectedImage = event.target.files[0] || null;
@@ -568,7 +568,7 @@ function wireEvents() {
 
   $("#scanBtn").addEventListener("click", async () => {
     if (!hasSelectedPerson()) {
-      setStatus("Add a friend first");
+      setStatus("Add yourself first");
       return;
     }
     if (!selectedImage) {
@@ -593,7 +593,7 @@ function wireEvents() {
   $("#saveScheduleBtn").addEventListener("click", async () => {
     const person = selectedPerson();
     if (!person) {
-      setStatus("Add a friend first");
+      setStatus("Add yourself first");
       return;
     }
     setStatus("Saving...");
@@ -660,7 +660,7 @@ function wireEvents() {
     state.matches = payload.matches;
     state.notifications = payload.notifications;
     $("#renameDialog").close();
-    setStatus("Friend renamed");
+    setStatus("Profile renamed");
     render();
   });
 
@@ -675,7 +675,7 @@ function wireEvents() {
     });
     selectedId = state.people[0]?.id || null;
     await loadState();
-    setStatus("Friend deleted");
+    setStatus("Profile deleted");
   });
 }
 
