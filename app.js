@@ -152,6 +152,32 @@ function normalizeTime(value) {
   return `${String(hour).padStart(2, "0")}:${minute}`;
 }
 
+function dayKey(value) {
+  const normalized = String(value || "").trim().toLowerCase().slice(0, 3);
+  const dayMap = {
+    mon: "mon",
+    tue: "tue",
+    wed: "wed",
+    thu: "thu",
+    fri: "fri",
+    sat: "sat",
+    sun: "sun"
+  };
+
+  return dayMap[normalized] || "";
+}
+
+function normalizedDays(days) {
+  return (Array.isArray(days) ? days : String(days || "").split(/[,\s/]+/))
+    .map(dayKey)
+    .filter(Boolean);
+}
+
+function hasSharedDay(left, right) {
+  const leftDays = new Set(normalizedDays(left.days));
+  return normalizedDays(right.days).some((day) => leftDays.has(day));
+}
+
 function classIdentity(klass) {
   const text = compactText(`${klass.course} ${klass.title}`);
   const courseMatch = text.match(/\b([A-Z]{2,8})\s*([0-9][A-Z0-9]{2,4})\b/);
@@ -162,7 +188,8 @@ function classIdentity(klass) {
     section: sectionMatch ? sectionMatch[1] : "",
     room: compactText(klass.room),
     start: normalizeTime(klass.start),
-    end: normalizeTime(klass.end)
+    end: normalizeTime(klass.end),
+    days: normalizedDays(klass.days)
   };
 }
 
@@ -170,12 +197,13 @@ function sameClass(left, right) {
   const a = classIdentity(left);
   const b = classIdentity(right);
   if (!a.courseCode || a.courseCode !== b.courseCode) return false;
+  if (!hasSharedDay(left, right)) return false;
 
   const sameSection = a.section && b.section && a.section === b.section;
   const sameTime = a.start && b.start && a.end && b.end && a.start === b.start && a.end === b.end;
   const sameRoom = a.room && b.room && a.room === b.room;
 
-  return sameSection || sameTime || (sameRoom && sameTime);
+  return sameSection || (sameRoom && sameTime);
 }
 
 function classmatesForClass(klass) {

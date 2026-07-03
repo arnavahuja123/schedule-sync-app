@@ -142,6 +142,27 @@ function normalizeTime(value) {
   return `${String(hour).padStart(2, "0")}:${minute}`;
 }
 
+function dayKey(value) {
+  const normalized = String(value || "").trim().toLowerCase().slice(0, 3);
+  const dayMap = {
+    mon: "mon",
+    tue: "tue",
+    wed: "wed",
+    thu: "thu",
+    fri: "fri",
+    sat: "sat",
+    sun: "sun"
+  };
+
+  return dayMap[normalized] || "";
+}
+
+function normalizedDays(days) {
+  return (Array.isArray(days) ? days : String(days || "").split(/[,\s/]+/))
+    .map(dayKey)
+    .filter(Boolean);
+}
+
 function compactText(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
 }
@@ -157,7 +178,8 @@ function courseIdentity(item) {
     section: sectionMatch ? sectionMatch[1] : "",
     type: typeMatch ? typeMatch[1].replace("LABORATORY", "LAB") : "",
     time: item.start && item.end ? `${item.start}-${item.end}` : "",
-    room: compactText(item.room)
+    room: compactText(item.room),
+    days: normalizedDays(item.days)
   };
 }
 
@@ -166,12 +188,12 @@ function matchingKeys(item) {
   if (!identity.courseCode) return [];
 
   const keys = new Set();
-  if (identity.section && identity.time) keys.add(`${identity.courseCode}|${identity.section}|${identity.time}`);
-  if (identity.section && identity.type) keys.add(`${identity.courseCode}|${identity.section}|${identity.type}`);
-  if (identity.time && identity.type) keys.add(`${identity.courseCode}|${identity.type}|${identity.time}`);
-  if (identity.room && identity.time) keys.add(`${identity.courseCode}|${identity.room}|${identity.time}`);
-  if (identity.section) keys.add(`${identity.courseCode}|${identity.section}`);
-  if (identity.time) keys.add(`${identity.courseCode}|${identity.time}`);
+  for (const day of identity.days) {
+    if (identity.section && identity.time) keys.add(`${identity.courseCode}|${day}|${identity.section}|${identity.time}`);
+    if (identity.section && identity.type) keys.add(`${identity.courseCode}|${day}|${identity.section}|${identity.type}`);
+    if (identity.time && identity.type) keys.add(`${identity.courseCode}|${day}|${identity.type}|${identity.time}`);
+    if (identity.room && identity.time) keys.add(`${identity.courseCode}|${day}|${identity.room}|${identity.time}`);
+  }
 
   return [...keys];
 }
@@ -196,7 +218,7 @@ function buildMatches(people, groupId = "") {
     .filter((entry) => entry.people.length > 1)
     .filter((entry) => {
       const identity = courseIdentity(entry.classInfo);
-      const groupKey = `${identity.courseCode}|${identity.section}|${identity.type}|${identity.time}|${entry.people.map((person) => person.id).sort().join(",")}`;
+      const groupKey = `${identity.courseCode}|${identity.days.join(",")}|${identity.section}|${identity.type}|${identity.time}|${entry.people.map((person) => person.id).sort().join(",")}`;
       if (seenGroups.has(groupKey)) return false;
       seenGroups.add(groupKey);
       return true;
