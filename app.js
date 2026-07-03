@@ -10,6 +10,7 @@ let selectedColor = "#2f80ed";
 let draftClasses = [];
 let selectedImage = null;
 let activeGroupId = localStorage.getItem("scheduleSyncGroupId") || "";
+let activeTerm = localStorage.getItem("scheduleSyncTerm") === "winter" ? "winter" : "fall";
 let knownGroups = loadKnownGroups();
 
 const $ = (selector) => document.querySelector(selector);
@@ -36,6 +37,18 @@ function hasSelectedPerson() {
 
 function setStatus(message) {
   scanStatus.textContent = message;
+}
+
+function classTerm(klass) {
+  return String(klass?.term || "fall").toLowerCase() === "winter" ? "winter" : "fall";
+}
+
+function termLabel(term = activeTerm) {
+  return term === "winter" ? "Winter" : "Fall";
+}
+
+function classesForTerm(person, term = activeTerm) {
+  return (person?.classes || []).filter((klass) => classTerm(klass) === term);
 }
 
 function loadKnownGroups() {
@@ -189,7 +202,8 @@ function classIdentity(klass) {
     room: compactText(klass.room),
     start: normalizeTime(klass.start),
     end: normalizeTime(klass.end),
-    days: normalizedDays(klass.days)
+    days: normalizedDays(klass.days),
+    term: classTerm(klass)
   };
 }
 
@@ -197,6 +211,7 @@ function sameClass(left, right) {
   const a = classIdentity(left);
   const b = classIdentity(right);
   if (!a.courseCode || a.courseCode !== b.courseCode) return false;
+  if (a.term !== b.term) return false;
   if (!hasSharedDay(left, right)) return false;
 
   const sameSection = a.section && b.section && a.section === b.section;
@@ -280,7 +295,7 @@ function renderFriends() {
       <span class="avatar" style="background:${person.color}"></span>
       <span>
         <strong>${person.name}</strong>
-        <span class="subtext">${person.classes.length} classes</span>
+        <span class="subtext">${classesForTerm(person).length} ${termLabel().toLowerCase()} classes</span>
       </span>
     </button>
   `).join("");
@@ -288,7 +303,7 @@ function renderFriends() {
   friendList.querySelectorAll(".friend-item").forEach((button) => {
     button.addEventListener("click", () => {
       selectedId = button.dataset.personId;
-      draftClasses = [...(selectedPerson()?.classes || [])];
+      draftClasses = [...classesForTerm(selectedPerson())];
       render();
     });
   });
@@ -299,6 +314,7 @@ function sharedMatchesForSelected() {
   if (!person) return [];
 
   return (state.matches || [])
+    .filter((match) => classTerm(match.classInfo) === activeTerm)
     .filter((match) => match.people.some((member) => member.id === person.id))
     .map((match) => ({
       ...match,
@@ -310,7 +326,7 @@ function sharedMatchesForSelected() {
 function renderWithMe() {
   const matches = sharedMatchesForSelected();
   if (!matches.length) {
-    withMeList.innerHTML = `<div class="empty-state">No shared classes in this group yet.</div>`;
+    withMeList.innerHTML = `<div class="empty-state">No shared ${termLabel().toLowerCase()} classes in this group yet.</div>`;
     return;
   }
 
@@ -362,7 +378,7 @@ function renderCalendar() {
 
 function renderClasses() {
   if (!draftClasses.length) {
-    classTable.innerHTML = `<div class="empty-state">No classes added yet.</div>`;
+    classTable.innerHTML = `<div class="empty-state">No ${termLabel().toLowerCase()} classes added yet.</div>`;
     return;
   }
 
@@ -392,12 +408,13 @@ function renderClasses() {
 }
 
 function renderMatches() {
-  if (!state.matches.length) {
-    matchList.innerHTML = `<div class="empty-state">Shared classes appear here after schedules are saved.</div>`;
+  const termMatches = (state.matches || []).filter((match) => classTerm(match.classInfo) === activeTerm);
+  if (!termMatches.length) {
+    matchList.innerHTML = `<div class="empty-state">Shared ${termLabel().toLowerCase()} classes appear here after schedules are saved.</div>`;
     return;
   }
 
-  matchList.innerHTML = state.matches.map((match) => `
+  matchList.innerHTML = termMatches.map((match) => `
     <article class="match-card">
       <h4>${match.classInfo.course} ${match.classInfo.title ? `· ${match.classInfo.title}` : ""}</h4>
       <p class="subtext">${match.classInfo.teacher || "Teacher TBD"} · ${match.classInfo.room || "Room TBD"} · ${(match.classInfo.days || []).join(" ")}</p>
@@ -411,12 +428,13 @@ function renderMatches() {
 }
 
 function renderNotifications() {
-  if (!state.notifications.length) {
-    notificationList.innerHTML = `<div class="empty-state">When someone uploads a schedule, matching classmates get alerts here.</div>`;
+  const termNotifications = (state.notifications || []).filter((note) => classTerm(note.classInfo) === activeTerm);
+  if (!termNotifications.length) {
+    notificationList.innerHTML = `<div class="empty-state">When someone uploads a ${termLabel().toLowerCase()} schedule, matching classmates get alerts here.</div>`;
     return;
   }
 
-  notificationList.innerHTML = state.notifications.slice(0, 8).map((note) => `
+  notificationList.innerHTML = termNotifications.slice(0, 8).map((note) => `
     <article class="notification-card">
       <p><strong>${note.message}</strong></p>
       <p class="subtext">${new Date(note.createdAt).toLocaleString()}</p>
@@ -441,6 +459,9 @@ function render() {
   }
   selectedId = person.id;
   selectedName.textContent = person.name;
+  document.querySelectorAll(".term-tab").forEach((item) => {
+    item.classList.toggle("active", item.dataset.term === activeTerm);
+  });
   renderGroups();
   setIntakeLocked(false);
   renderFriends();
@@ -469,13 +490,13 @@ async function loadState() {
   }
   selectedId = selectedId || state.people[0]?.id;
   if (!state.people.some((person) => person.id === selectedId)) selectedId = state.people[0]?.id || null;
-  draftClasses = [...(selectedPerson()?.classes || [])];
+  draftClasses = [...classesForTerm(selectedPerson())];
   render();
 }
 
 function addDraftClass(klass) {
   if (!klass.course) return;
-  draftClasses.push(klass);
+  draftClasses.push({ ...klass, term: activeTerm });
   renderClasses();
 }
 
@@ -496,6 +517,16 @@ function wireEvents() {
     button.addEventListener("click", () => {
       switchView(button.dataset.view);
       document.querySelector(".workspace").scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+
+  document.querySelectorAll(".term-tab").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeTerm = button.dataset.term;
+      localStorage.setItem("scheduleSyncTerm", activeTerm);
+      draftClasses = [...classesForTerm(selectedPerson())];
+      render();
+      setStatus(`${termLabel()} schedule`);
     });
   });
 
@@ -593,7 +624,7 @@ function wireEvents() {
       setStatus("Add yourself first");
       return;
     }
-    draftClasses = csvToClasses($("#csvInput").value);
+    draftClasses = csvToClasses($("#csvInput").value).map((klass) => ({ ...klass, term: activeTerm }));
     renderClasses();
     setStatus(`Imported ${draftClasses.length} classes`);
   });
@@ -633,7 +664,7 @@ function wireEvents() {
           mimeType: selectedImage.type
         })
       });
-      draftClasses = result.classes || [];
+      draftClasses = (result.classes || []).map((klass) => ({ ...klass, term: activeTerm }));
       renderClasses();
       setStatus(result.demo ? "Demo scan loaded" : "Image scanned");
     } catch (error) {
@@ -652,7 +683,7 @@ function wireEvents() {
     setStatus("Saving...");
     const payload = await api("/api/schedules", {
       method: "POST",
-      body: JSON.stringify({ personId: person.id, classes: draftClasses })
+      body: JSON.stringify({ personId: person.id, term: activeTerm, classes: draftClasses })
     });
     state.people = state.people.map((item) => item.id === payload.person.id ? payload.person : item);
     state.matches = payload.matches;

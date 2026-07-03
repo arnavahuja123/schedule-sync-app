@@ -123,8 +123,13 @@ function normalizeClass(item) {
     room: String(item.room || "").trim(),
     days,
     start: normalizeTime(item.start || item.startTime || ""),
-    end: normalizeTime(item.end || item.endTime || "")
+    end: normalizeTime(item.end || item.endTime || ""),
+    term: normalizeTerm(item.term)
   };
+}
+
+function normalizeTerm(value) {
+  return String(value || "fall").trim().toLowerCase() === "winter" ? "winter" : "fall";
 }
 
 function normalizeTime(value) {
@@ -179,7 +184,8 @@ function courseIdentity(item) {
     type: typeMatch ? typeMatch[1].replace("LABORATORY", "LAB") : "",
     time: item.start && item.end ? `${item.start}-${item.end}` : "",
     room: compactText(item.room),
-    days: normalizedDays(item.days)
+    days: normalizedDays(item.days),
+    term: normalizeTerm(item.term)
   };
 }
 
@@ -189,10 +195,10 @@ function matchingKeys(item) {
 
   const keys = new Set();
   for (const day of identity.days) {
-    if (identity.section && identity.time) keys.add(`${identity.courseCode}|${day}|${identity.section}|${identity.time}`);
-    if (identity.section && identity.type) keys.add(`${identity.courseCode}|${day}|${identity.section}|${identity.type}`);
-    if (identity.time && identity.type) keys.add(`${identity.courseCode}|${day}|${identity.type}|${identity.time}`);
-    if (identity.room && identity.time) keys.add(`${identity.courseCode}|${day}|${identity.room}|${identity.time}`);
+    if (identity.section && identity.time) keys.add(`${identity.term}|${identity.courseCode}|${day}|${identity.section}|${identity.time}`);
+    if (identity.section && identity.type) keys.add(`${identity.term}|${identity.courseCode}|${day}|${identity.section}|${identity.type}`);
+    if (identity.time && identity.type) keys.add(`${identity.term}|${identity.courseCode}|${day}|${identity.type}|${identity.time}`);
+    if (identity.room && identity.time) keys.add(`${identity.term}|${identity.courseCode}|${day}|${identity.room}|${identity.time}`);
   }
 
   return [...keys];
@@ -218,7 +224,7 @@ function buildMatches(people, groupId = "") {
     .filter((entry) => entry.people.length > 1)
     .filter((entry) => {
       const identity = courseIdentity(entry.classInfo);
-      const groupKey = `${identity.courseCode}|${identity.days.join(",")}|${identity.section}|${identity.type}|${identity.time}|${entry.people.map((person) => person.id).sort().join(",")}`;
+      const groupKey = `${identity.term}|${identity.courseCode}|${identity.days.join(",")}|${identity.section}|${identity.type}|${identity.time}|${entry.people.map((person) => person.id).sort().join(",")}`;
       if (seenGroups.has(groupKey)) return false;
       seenGroups.add(groupKey);
       return true;
@@ -226,8 +232,10 @@ function buildMatches(people, groupId = "") {
     .sort((a, b) => a.classInfo.course.localeCompare(b.classInfo.course));
 }
 
-function createNotifications(db, person) {
-  const matches = buildMatches(db.people, person.groupId);
+function createNotifications(db, person, term = "") {
+  const activeTerm = normalizeTerm(term);
+  const matches = buildMatches(db.people, person.groupId)
+    .filter((match) => normalizeTerm(match.classInfo.term) === activeTerm);
   const timestamp = new Date().toISOString();
   const fresh = [];
 
@@ -235,10 +243,10 @@ function createNotifications(db, person) {
     if (!match.people.some((member) => member.id === person.id)) continue;
     const friends = match.people.filter((member) => member.id !== person.id).map((member) => member.name);
     fresh.push({
-      id: `${timestamp}-${person.id}-${match.classInfo.course}-${fresh.length}`,
+      id: `${timestamp}-${person.id}-${match.classInfo.term || "fall"}-${match.classInfo.course}-${fresh.length}`,
       personId: person.id,
       createdAt: timestamp,
-      message: `${person.name}, you have ${match.classInfo.course} with ${friends.join(", ")}.`,
+      message: `${person.name}, you have ${match.classInfo.course} with ${friends.join(", ")} in ${normalizeTerm(match.classInfo.term)}.`,
       classInfo: match.classInfo,
       friendNames: friends
     });
@@ -461,8 +469,15 @@ async function handleApi(req, res, pathname) {
     const person = db.people.find((item) => item.id === body.personId);
     if (!person) return sendJson(res, 404, { error: "Person not found." });
 
-    person.classes = (body.classes || []).map(normalizeClass).filter((item) => item.course);
-    createNotifications(db, person);
+    const term = normalizeTerm(body.term);
+    const nextClasses = (body.classes || [])
+      .map((item) => normalizeClass({ ...item, term }))
+      .filter((item) => item.course);
+    person.classes = [
+      ...(person.classes || []).map(normalizeClass).filter((item) => normalizeTerm(item.term) !== term),
+      ...nextClasses
+    ];
+    createNotifications(db, person, term);
     await saveDb(db);
     return sendJson(res, 200, {
       person,

@@ -266,9 +266,9 @@ select {
   white-space: nowrap;
 }
 
-.view-tabs {
+.view-tabs,
+.term-tabs {
   display: inline-grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
   gap: 6px;
   margin-bottom: 18px;
   border: 1px solid var(--line);
@@ -277,7 +277,17 @@ select {
   padding: 4px;
 }
 
-.view-tab {
+.view-tabs {
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+}
+
+.term-tabs {
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  margin-left: 12px;
+}
+
+.view-tab,
+.term-tab {
   min-height: 38px;
   border: 0;
   border-radius: 6px;
@@ -286,7 +296,8 @@ select {
   font-weight: 800;
 }
 
-.view-tab.active {
+.view-tab.active,
+.term-tab.active {
   background: #111827;
   color: #ffffff;
 }
@@ -836,6 +847,13 @@ dialog::backdrop {
     display: grid;
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .term-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    margin-left: 0;
   }
 
   .class-form,
