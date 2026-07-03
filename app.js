@@ -62,11 +62,26 @@ function rememberGroup(group) {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, {
-    headers: { "content-type": "application/json" },
-    ...options
-  });
-  const payload = await response.json();
+  const { timeoutMs = 0, ...fetchOptions } = options;
+  const controller = timeoutMs ? new AbortController() : null;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+  let response;
+  try {
+    response = await fetch(path, {
+      headers: { "content-type": "application/json", ...(fetchOptions.headers || {}) },
+      ...fetchOptions,
+      signal: controller?.signal || fetchOptions.signal
+    });
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("Request timed out. Try a smaller/clearer image.");
+    throw error;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+
+  const text = await response.text();
+  const payload = text ? JSON.parse(text) : {};
   if (!response.ok) throw new Error(payload.error || "Request failed.");
   return payload;
 }
@@ -576,18 +591,28 @@ function wireEvents() {
       return;
     }
 
+    const scanButton = $("#scanBtn");
+    scanButton.disabled = true;
     setStatus("Scanning image...");
-    const imageBase64 = await fileToBase64(selectedImage);
-    const result = await api("/api/scan", {
-      method: "POST",
-      body: JSON.stringify({
-        imageBase64,
-        mimeType: selectedImage.type
-      })
-    });
-    draftClasses = result.classes || [];
-    renderClasses();
-    setStatus(result.demo ? "Demo scan loaded" : "Image scanned");
+
+    try {
+      const imageBase64 = await fileToBase64(selectedImage);
+      const result = await api("/api/scan", {
+        method: "POST",
+        timeoutMs: 70000,
+        body: JSON.stringify({
+          imageBase64,
+          mimeType: selectedImage.type
+        })
+      });
+      draftClasses = result.classes || [];
+      renderClasses();
+      setStatus(result.demo ? "Demo scan loaded" : "Image scanned");
+    } catch (error) {
+      setStatus(error.message || "Scan failed");
+    } finally {
+      scanButton.disabled = false;
+    }
   });
 
   $("#saveScheduleBtn").addEventListener("click", async () => {

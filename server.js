@@ -265,6 +265,8 @@ async function scanScheduleWithGemini({ imageBase64, mimeType }) {
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 55000);
   const prompt = [
     "Read this student schedule image and return only valid JSON.",
     "Use this schema: {\"classes\":[{\"course\":\"string\",\"title\":\"string\",\"teacher\":\"string\",\"room\":\"string\",\"days\":[\"Mon\"],\"start\":\"HH:MM\",\"end\":\"HH:MM\"}]}",
@@ -273,33 +275,42 @@ async function scanScheduleWithGemini({ imageBase64, mimeType }) {
     "If a value is missing, use an empty string or empty array. Do not include markdown."
   ].join(" ");
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: prompt },
-            {
-              inline_data: {
-                mime_type: mimeType || "image/png",
-                data: imageBase64
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: mimeType || "image/png",
+                  data: imageBase64
+                }
               }
-            }
-          ]
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json"
         }
-      ],
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
-    })
-  });
+      })
+    });
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("Gemini took too long to scan. Try a smaller or clearer image.");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`Gemini scan failed: ${response.status} ${detail}`);
+    throw new Error(`Gemini scan failed: ${response.status} ${detail.slice(0, 240)}`);
   }
 
   const data = await response.json();
