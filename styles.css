@@ -493,6 +493,12 @@ textarea {
   padding: 20px;
 }
 
+.dropzone.ready-to-scan {
+  border-color: rgba(39, 174, 96, 0.62);
+  background: #effaf4;
+  color: #1f6f3d;
+}
+
 .dropzone input {
   display: none;
 }
@@ -505,8 +511,54 @@ textarea {
   border-radius: 50%;
   background: #eaf3ff;
   color: var(--accent);
-  font-size: 28px;
+  font-size: 13px;
   font-weight: 900;
+}
+
+.dropzone.ready-to-scan .drop-icon {
+  background: #dff5e8;
+  color: var(--green);
+}
+
+.dropzone strong {
+  font-size: 18px;
+}
+
+.dropzone.ready-to-scan strong {
+  color: #1f6f3d;
+  font-size: 22px;
+}
+
+.upload-preview {
+  display: none;
+  width: min(220px, 88%);
+  height: 132px;
+  border: 1px solid rgba(39, 174, 96, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(24, 33, 47, 0.12);
+  object-fit: cover;
+}
+
+.dropzone.ready-to-scan .upload-preview {
+  display: block;
+}
+
+.selected-file-name {
+  display: none;
+  max-width: min(460px, 100%);
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 800;
+  padding: 8px 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropzone.ready-to-scan .selected-file-name {
+  display: block;
 }
 
 .schedule-preview {

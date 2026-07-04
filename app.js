@@ -9,6 +9,7 @@ let selectedId = null;
 let selectedColor = "#2f80ed";
 let draftClasses = [];
 let selectedImage = null;
+let selectedImagePreviewUrl = "";
 let activeGroupId = localStorage.getItem("scheduleSyncGroupId") || "";
 let activeTerm = localStorage.getItem("scheduleSyncTerm") === "winter" ? "winter" : "fall";
 let knownGroups = loadKnownGroups();
@@ -26,6 +27,12 @@ const groupCodeText = $("#groupCodeText");
 const withMeList = $("#withMeList");
 const calendarGrid = $("#calendarGrid");
 const intakePanel = document.querySelector(".schedule-panel");
+const dropzone = document.querySelector(".dropzone");
+const dropIcon = $("#dropIcon");
+const dropTitle = $("#dropTitle");
+const uploadPreview = $("#uploadPreview");
+const selectedFileName = $("#selectedFileName");
+const dropHint = $("#dropHint");
 
 function selectedPerson() {
   return state.people.find((person) => person.id === selectedId) || state.people[0];
@@ -37,6 +44,31 @@ function hasSelectedPerson() {
 
 function setStatus(message) {
   scanStatus.textContent = message;
+}
+
+function renderSelectedImage() {
+  const hasImage = Boolean(selectedImage);
+  dropzone?.classList.toggle("ready-to-scan", hasImage);
+
+  if (dropIcon) dropIcon.textContent = hasImage ? "Ready" : "Upload";
+  if (dropTitle) dropTitle.textContent = hasImage ? "Ready to scan" : "Upload a schedule screenshot or photo";
+  if (uploadPreview) {
+    uploadPreview.src = selectedImagePreviewUrl;
+    uploadPreview.hidden = !hasImage;
+  }
+  if (selectedFileName) selectedFileName.textContent = selectedImage?.name || "";
+  if (dropHint) {
+    dropHint.textContent = hasImage
+      ? "Your image is selected. Press Scan Image below to read your schedule."
+      : "Gemini scans the image when `GEMINI_API_KEY` is set on the server.";
+  }
+}
+
+function setSelectedImage(file) {
+  if (selectedImagePreviewUrl) URL.revokeObjectURL(selectedImagePreviewUrl);
+  selectedImage = file || null;
+  selectedImagePreviewUrl = selectedImage ? URL.createObjectURL(selectedImage) : "";
+  renderSelectedImage();
 }
 
 function classTerm(klass) {
@@ -632,12 +664,12 @@ function wireEvents() {
   $("#imageInput").addEventListener("change", (event) => {
     if (!hasSelectedPerson()) {
       event.target.value = "";
-      selectedImage = null;
+      setSelectedImage(null);
       setStatus("Add yourself first");
       return;
     }
-    selectedImage = event.target.files[0] || null;
-    setStatus(selectedImage ? selectedImage.name : "Ready");
+    setSelectedImage(event.target.files[0] || null);
+    setStatus(selectedImage ? "Ready to scan" : "Ready");
   });
 
   $("#scanBtn").addEventListener("click", async () => {
@@ -774,6 +806,7 @@ function fileToBase64(file) {
 
 wireEvents();
 switchView("schedule");
+renderSelectedImage();
 loadState().catch((error) => {
   setStatus(error.message);
 });

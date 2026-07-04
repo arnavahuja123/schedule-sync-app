@@ -105,9 +105,11 @@ ENG3U,English,Ms. Wong,214,"Mon Wed Fri",09:00,10:15</textarea>
             <div class="upload-mode active" id="scanMode">
               <label class="dropzone" for="imageInput">
                 <input id="imageInput" type="file" accept="image/*">
-                <span class="drop-icon">⌁</span>
-                <strong>Upload a schedule screenshot or photo</strong>
-                <small>Gemini scans the image when `GEMINI_API_KEY` is set on the server.</small>
+                <span class="drop-icon" id="dropIcon">Upload</span>
+                <strong id="dropTitle">Upload a schedule screenshot or photo</strong>
+                <img class="upload-preview" id="uploadPreview" alt="Selected schedule preview">
+                <span class="selected-file-name" id="selectedFileName"></span>
+                <small id="dropHint">Gemini scans the image when `GEMINI_API_KEY` is set on the server.</small>
               </label>
               <button id="scanBtn" type="button">Scan Image</button>
             </div>
