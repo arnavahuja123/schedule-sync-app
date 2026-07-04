@@ -505,6 +505,13 @@ textarea {
   color: #1f4f91;
 }
 
+.dropzone.scan-loading {
+  border-color: rgba(47, 128, 237, 0.58);
+  background: #f2f7ff;
+  color: #1f4f91;
+  cursor: wait;
+}
+
 .dropzone input {
   display: none;
 }
@@ -531,6 +538,21 @@ textarea {
   color: var(--accent);
 }
 
+.dropzone.scan-loading .drop-icon {
+  background: #dcecff;
+  color: transparent;
+}
+
+.dropzone.scan-loading .drop-icon::after {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(47, 128, 237, 0.22);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: scan-spin 0.85s linear infinite;
+}
+
 .dropzone strong {
   font-size: 18px;
 }
@@ -541,6 +563,10 @@ textarea {
 }
 
 .dropzone.scan-complete strong {
+  color: #1f4f91;
+}
+
+.dropzone.scan-loading strong {
   color: #1f4f91;
 }
 
@@ -561,6 +587,17 @@ textarea {
 
 .dropzone.scan-complete .upload-preview {
   border-color: rgba(47, 128, 237, 0.28);
+}
+
+.dropzone.scan-loading .upload-preview {
+  border-color: rgba(47, 128, 237, 0.28);
+  opacity: 0.58;
+}
+
+@keyframes scan-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .selected-file-name {

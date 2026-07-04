@@ -11,6 +11,7 @@ let draftClasses = [];
 let selectedImage = null;
 let selectedImagePreviewUrl = "";
 let scanComplete = false;
+let scanInProgress = false;
 let activeGroupId = localStorage.getItem("scheduleSyncGroupId") || "";
 let activeTerm = localStorage.getItem("scheduleSyncTerm") === "winter" ? "winter" : "fall";
 let knownGroups = loadKnownGroups();
@@ -52,10 +53,13 @@ function renderSelectedImage() {
   const hasScanned = hasImage && scanComplete;
   dropzone?.classList.toggle("ready-to-scan", hasImage);
   dropzone?.classList.toggle("scan-complete", hasScanned);
+  dropzone?.classList.toggle("scan-loading", scanInProgress);
 
-  if (dropIcon) dropIcon.textContent = hasScanned ? "Done" : hasImage ? "Ready" : "Upload";
+  if (dropIcon) dropIcon.textContent = scanInProgress ? "" : hasScanned ? "Done" : hasImage ? "Ready" : "Upload";
   if (dropTitle) {
-    dropTitle.textContent = hasScanned
+    dropTitle.textContent = scanInProgress
+      ? "Scanning image..."
+      : hasScanned
       ? "Image scanned"
       : hasImage
         ? "Ready to scan"
@@ -67,7 +71,9 @@ function renderSelectedImage() {
   }
   if (selectedFileName) selectedFileName.textContent = selectedImage?.name || "";
   if (dropHint) {
-    dropHint.textContent = hasScanned
+    dropHint.textContent = scanInProgress
+      ? "Reading your schedule now. This can take a moment."
+      : hasScanned
       ? "Your schedule was read. Review the classes below, then press Save & Notify."
       : hasImage
         ? "Your image is selected. Press Scan Image below to read your schedule."
@@ -80,6 +86,7 @@ function setSelectedImage(file) {
   selectedImage = file || null;
   selectedImagePreviewUrl = selectedImage ? URL.createObjectURL(selectedImage) : "";
   scanComplete = false;
+  scanInProgress = false;
   renderSelectedImage();
 }
 
@@ -708,6 +715,10 @@ function wireEvents() {
 
     const scanButton = $("#scanBtn");
     scanButton.disabled = true;
+    scanButton.textContent = "Scanning...";
+    scanInProgress = true;
+    scanComplete = false;
+    renderSelectedImage();
     setStatus("Scanning image...");
 
     try {
@@ -722,13 +733,18 @@ function wireEvents() {
       });
       draftClasses = (result.classes || []).map((klass) => ({ ...klass, term: activeTerm }));
       renderClasses();
+      scanInProgress = false;
       scanComplete = true;
       renderSelectedImage();
       setStatus(result.demo ? "Demo scan loaded - save when ready" : "Image scanned - save when ready");
     } catch (error) {
+      scanInProgress = false;
+      scanComplete = false;
+      renderSelectedImage();
       setStatus(error.message || "Scan failed");
     } finally {
       scanButton.disabled = false;
+      scanButton.textContent = "Scan Image";
     }
   });
 
