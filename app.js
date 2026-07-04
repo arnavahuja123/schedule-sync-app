@@ -83,6 +83,12 @@ function setSelectedImage(file) {
   renderSelectedImage();
 }
 
+function resetImageUpload() {
+  const imageInput = $("#imageInput");
+  if (imageInput) imageInput.value = "";
+  setSelectedImage(null);
+}
+
 function classTerm(klass) {
   return String(klass?.term || "fall").toLowerCase() === "winter" ? "winter" : "fall";
 }
@@ -348,7 +354,9 @@ function renderFriends() {
     button.addEventListener("click", () => {
       selectedId = button.dataset.personId;
       draftClasses = [...classesForTerm(selectedPerson())];
+      resetImageUpload();
       render();
+      setStatus("Ready");
     });
   });
 }
@@ -569,6 +577,7 @@ function wireEvents() {
       activeTerm = button.dataset.term;
       localStorage.setItem("scheduleSyncTerm", activeTerm);
       draftClasses = [...classesForTerm(selectedPerson())];
+      resetImageUpload();
       render();
       setStatus(`${termLabel()} schedule`);
     });
@@ -579,6 +588,7 @@ function wireEvents() {
     activeGroupId = groupSelect.value;
     localStorage.setItem("scheduleSyncGroupId", activeGroupId);
     selectedId = null;
+    resetImageUpload();
     await loadState();
   });
 
@@ -611,6 +621,7 @@ function wireEvents() {
     activeGroupId = payload.group.id;
     localStorage.setItem("scheduleSyncGroupId", activeGroupId);
     selectedId = null;
+    resetImageUpload();
     $("#groupNameInput").value = "";
     $("#createGroupDialog").close();
     await loadState();
@@ -628,6 +639,7 @@ function wireEvents() {
     activeGroupId = payload.group.id;
     localStorage.setItem("scheduleSyncGroupId", activeGroupId);
     selectedId = null;
+    resetImageUpload();
     $("#joinCodeInput").value = "";
     $("#joinGroupDialog").close();
     await loadState();
@@ -734,6 +746,7 @@ function wireEvents() {
     state.people = state.people.map((item) => item.id === payload.person.id ? payload.person : item);
     state.matches = payload.matches;
     state.notifications = payload.notifications;
+    resetImageUpload();
     setStatus("Saved and matched");
     render();
   });
@@ -765,6 +778,7 @@ function wireEvents() {
     state.matches = result.matches;
     selectedId = result.person.id;
     draftClasses = [];
+    resetImageUpload();
     $("#friendNameInput").value = "";
     $("#friendDialog").close();
     render();
@@ -804,6 +818,7 @@ function wireEvents() {
       method: "DELETE"
     });
     selectedId = state.people[0]?.id || null;
+    resetImageUpload();
     await loadState();
     setStatus("Profile deleted");
   });
