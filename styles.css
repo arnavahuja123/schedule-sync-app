@@ -499,6 +499,12 @@ textarea {
   color: #1f6f3d;
 }
 
+.dropzone.scan-complete {
+  border-color: rgba(47, 128, 237, 0.58);
+  background: #eef6ff;
+  color: #1f4f91;
+}
+
 .dropzone input {
   display: none;
 }
@@ -520,6 +526,11 @@ textarea {
   color: var(--green);
 }
 
+.dropzone.scan-complete .drop-icon {
+  background: #dcecff;
+  color: var(--accent);
+}
+
 .dropzone strong {
   font-size: 18px;
 }
@@ -527,6 +538,10 @@ textarea {
 .dropzone.ready-to-scan strong {
   color: #1f6f3d;
   font-size: 22px;
+}
+
+.dropzone.scan-complete strong {
+  color: #1f4f91;
 }
 
 .upload-preview {
@@ -542,6 +557,10 @@ textarea {
 
 .dropzone.ready-to-scan .upload-preview {
   display: block;
+}
+
+.dropzone.scan-complete .upload-preview {
+  border-color: rgba(47, 128, 237, 0.28);
 }
 
 .selected-file-name {

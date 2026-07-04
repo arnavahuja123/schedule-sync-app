@@ -10,6 +10,7 @@ let selectedColor = "#2f80ed";
 let draftClasses = [];
 let selectedImage = null;
 let selectedImagePreviewUrl = "";
+let scanComplete = false;
 let activeGroupId = localStorage.getItem("scheduleSyncGroupId") || "";
 let activeTerm = localStorage.getItem("scheduleSyncTerm") === "winter" ? "winter" : "fall";
 let knownGroups = loadKnownGroups();
@@ -48,19 +49,29 @@ function setStatus(message) {
 
 function renderSelectedImage() {
   const hasImage = Boolean(selectedImage);
+  const hasScanned = hasImage && scanComplete;
   dropzone?.classList.toggle("ready-to-scan", hasImage);
+  dropzone?.classList.toggle("scan-complete", hasScanned);
 
-  if (dropIcon) dropIcon.textContent = hasImage ? "Ready" : "Upload";
-  if (dropTitle) dropTitle.textContent = hasImage ? "Ready to scan" : "Upload a schedule screenshot or photo";
+  if (dropIcon) dropIcon.textContent = hasScanned ? "Done" : hasImage ? "Ready" : "Upload";
+  if (dropTitle) {
+    dropTitle.textContent = hasScanned
+      ? "Image scanned"
+      : hasImage
+        ? "Ready to scan"
+        : "Upload a schedule screenshot or photo";
+  }
   if (uploadPreview) {
     uploadPreview.src = selectedImagePreviewUrl;
     uploadPreview.hidden = !hasImage;
   }
   if (selectedFileName) selectedFileName.textContent = selectedImage?.name || "";
   if (dropHint) {
-    dropHint.textContent = hasImage
-      ? "Your image is selected. Press Scan Image below to read your schedule."
-      : "Gemini scans the image when `GEMINI_API_KEY` is set on the server.";
+    dropHint.textContent = hasScanned
+      ? "Your schedule was read. Review the classes below, then press Save & Notify."
+      : hasImage
+        ? "Your image is selected. Press Scan Image below to read your schedule."
+        : "Gemini scans the image when `GEMINI_API_KEY` is set on the server.";
   }
 }
 
@@ -68,6 +79,7 @@ function setSelectedImage(file) {
   if (selectedImagePreviewUrl) URL.revokeObjectURL(selectedImagePreviewUrl);
   selectedImage = file || null;
   selectedImagePreviewUrl = selectedImage ? URL.createObjectURL(selectedImage) : "";
+  scanComplete = false;
   renderSelectedImage();
 }
 
@@ -698,7 +710,9 @@ function wireEvents() {
       });
       draftClasses = (result.classes || []).map((klass) => ({ ...klass, term: activeTerm }));
       renderClasses();
-      setStatus(result.demo ? "Demo scan loaded" : "Image scanned");
+      scanComplete = true;
+      renderSelectedImage();
+      setStatus(result.demo ? "Demo scan loaded - save when ready" : "Image scanned - save when ready");
     } catch (error) {
       setStatus(error.message || "Scan failed");
     } finally {
