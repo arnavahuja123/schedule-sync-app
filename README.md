@@ -20,9 +20,6 @@ A web app that lets students upload their class schedules and automatically find
 3. Create a `.env` file
 4. Run `npm start`
 
-## Screenshots
-(Add images here)
-
 ## Future Plans
 - Mobile app
 - Calendar integration
